@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
 
@@ -18,7 +19,7 @@ interface ScreenerData {
   losers: MoverStock[];
 }
 
-export default function StockScreener() {
+export default function TopStockMovers() {
   const router = useRouter();
   const [data, setData] = useState<ScreenerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,35 +101,12 @@ export default function StockScreener() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-black dark:text-white mb-2">
-            Stock Screener
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Top Stock Movers
-            {data?.last_updated && (
-              <span className="text-sm ml-2">
-                (Last updated: {new Date(data.last_updated).toLocaleTimeString()})
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-8">
-          <input
-            type="text"
-            placeholder="Search for a stock symbol (e.g., AAPL)..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={handleSearch}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-zinc-900 text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-          />
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Press Enter to search
-          </p>
-        </div>
+        <StockSearchHeader
+          searchInput={searchInput}
+          onSearchChange={(value) => setSearchInput(value)}
+          onSearch={handleSearch}
+          lastUpdated={data?.last_updated}
+        />
 
         {/* Controls */}
         <div className="mb-8 flex gap-4 items-center">
