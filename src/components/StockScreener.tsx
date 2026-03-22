@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StockNews from './StockNews';
+import ActiveStocks from './ActiveStocks';
 
 interface MoverStock {
   symbol: string;
@@ -276,6 +277,11 @@ export default function StockScreener() {
               </table>
             </div>
           </div>
+        </div>
+
+        {/* Most Active Stocks */}
+        <div className="mt-12">
+          <ActiveStocks initialLimit={10} />
         </div>
 
         {/* News Section */}
