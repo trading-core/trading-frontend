@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface MoverStock {
   symbol: string;
@@ -16,10 +17,12 @@ interface ScreenerData {
 }
 
 export default function StockScreener() {
+  const router = useRouter();
   const [data, setData] = useState<ScreenerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
+  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,6 +57,17 @@ export default function StockScreener() {
 
     return () => clearInterval(interval);
   }, [limit]);
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchInput.trim()) {
+      router.push(`/stock/${searchInput.toUpperCase()}`);
+      setSearchInput('');
+    }
+  };
+
+  const navigateToStock = (symbol: string) => {
+    router.push(`/stock/${symbol}`);
+  };
 
   if (loading && !data) {
     return (
@@ -99,6 +113,21 @@ export default function StockScreener() {
           </p>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-8">
+          <input
+            type="text"
+            placeholder="Search for a stock symbol (e.g., AAPL)..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={handleSearch}
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-zinc-900 text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Press Enter to search
+          </p>
+        </div>
+
         {/* Controls */}
         <div className="mb-8 flex gap-4 items-center">
           <label className="text-gray-700 dark:text-gray-300 font-medium">
@@ -138,10 +167,10 @@ export default function StockScreener() {
                       Price
                     </th>
                     <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      Change
+                      Change (1D)
                     </th>
                     <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      %
+                      % (1D)
                     </th>
                   </tr>
                 </thead>
@@ -150,7 +179,8 @@ export default function StockScreener() {
                     data.gainers.map((stock) => (
                       <tr
                         key={stock.symbol}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-green-50 dark:hover:bg-zinc-800 transition"
+                        onClick={() => navigateToStock(stock.symbol)}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-green-50 dark:hover:bg-zinc-800 transition cursor-pointer"
                       >
                         <td className="px-6 py-4 font-semibold text-gray-900 dark:text-gray-100">
                           {stock.symbol}
@@ -202,10 +232,10 @@ export default function StockScreener() {
                       Price
                     </th>
                     <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      Change
+                      Change (1D)
                     </th>
                     <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      %
+                      % (1D)
                     </th>
                   </tr>
                 </thead>
@@ -214,7 +244,8 @@ export default function StockScreener() {
                     data.losers.map((stock) => (
                       <tr
                         key={stock.symbol}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-zinc-800 transition"
+                        onClick={() => navigateToStock(stock.symbol)}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-zinc-800 transition cursor-pointer"
                       >
                         <td className="px-6 py-4 font-semibold text-gray-900 dark:text-gray-100">
                           {stock.symbol}
