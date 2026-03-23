@@ -18,7 +18,7 @@ export default function Balance() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:9000/account/v1/balance', {
+        const response = await fetch('http://localhost:9000/accounts/v1/balance', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
