@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
+import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 
 interface MoverStock {
   symbol: string;
@@ -33,7 +34,7 @@ export default function TopStockMovers() {
         setLoading(true);
         setError(null);
         const response = await fetch(
-          `http://localhost:8080/stock-screener/v1/movers?limit=${limit}`,
+          apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/movers?limit=${limit}`),
           {
             method: 'GET',
             headers: {

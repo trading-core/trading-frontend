@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 
 interface StockImage {
   size: string;
@@ -47,7 +48,7 @@ export default function StockNews({ limit = 10 }: StockNewsProps) {
       setLoading(true);
       setError(null);
       
-      let url = `http://localhost:8080/stock-screener/v1/news?limit=${pageSize}`;
+      let url = apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/news?limit=${pageSize}`);
       
       if (symbols.length > 0) {
         url += `&symbols=${symbols.join(',')}`;

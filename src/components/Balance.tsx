@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
+import { loadAuthSession } from '@/lib/authSession';
 
 interface BalanceInfo {
   account_broker: string;
@@ -18,10 +20,15 @@ export default function Balance() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:9000/accounts/v1/balance', {
+        const session = loadAuthSession();
+        if (!session) {
+          throw new Error('Not authenticated');
+        }
+        const response = await fetch(apiUrl(ACCOUNT_SERVICE_BASE_URL, '/accounts/v1/balance'), {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `${session.token_type} ${session.access_token}`,
           },
         });
 

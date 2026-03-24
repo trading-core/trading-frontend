@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 
 interface ActiveStock {
   symbol: string;
@@ -32,7 +33,10 @@ export default function ActiveStocks({ initialLimit = 10 }: ActiveStocksProps) {
         setLoading(true);
         setError(null);
         const response = await fetch(
-          `http://localhost:8080/stock-screener/v1/most-actives?limit=${limit}&rank_by=${rankBy}`,
+          apiUrl(
+            STOCK_SCREENER_BASE_URL,
+            `/stock-screener/v1/most-actives?limit=${limit}&rank_by=${rankBy}`
+          ),
           {
             method: 'GET',
             headers: {

@@ -2,7 +2,9 @@
 - name: Render frontend .env
   vars:
     service_environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:9000
+      NEXT_PUBLIC_ACCOUNT_SERVICE_BASE_URL: http://localhost:9000
+      NEXT_PUBLIC_STOCK_SCREENER_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_AUTH_SERVICE_BASE_URL: http://localhost:9100
   template:
     src: "{{ playbook_dir }}/templates/service.env.j2"
     dest: frontend/.env

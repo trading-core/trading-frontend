@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 
 interface StockDetailData {
   symbol: string;
@@ -36,7 +37,7 @@ export default function StockDetail({ symbol }: StockDetailProps) {
         setError(null);
         // TODO: Update this endpoint based on your backend API
         const response = await fetch(
-          `http://localhost:8080/stock-screener/v1/stock/${symbol}`,
+          apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/stock/${symbol}`),
           {
             method: 'GET',
             headers: {
