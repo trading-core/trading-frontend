@@ -36,7 +36,7 @@ export default function AuthPanel({ onSessionChange }: AuthPanelProps) {
   }, [isLoading, isRegisterMode]);
 
   const register = async () => {
-    const response = await fetch(apiUrl(AUTH_SERVICE_BASE_URL, '/auth/v1/accounts'), {
+    const response = await fetch(apiUrl(AUTH_SERVICE_BASE_URL, '/auth/v1/users'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -48,7 +48,7 @@ export default function AuthPanel({ onSessionChange }: AuthPanelProps) {
   };
 
   const login = async () => {
-    const response = await fetch(apiUrl(AUTH_SERVICE_BASE_URL, '/auth/v1/login'), {
+    const response = await fetch(apiUrl(AUTH_SERVICE_BASE_URL, '/auth/v1/sessions'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
