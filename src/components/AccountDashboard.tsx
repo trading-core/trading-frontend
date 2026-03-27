@@ -10,6 +10,16 @@ interface AccountDashboardProps {
   session: AuthSession;
 }
 
+type SupportedBroker = 'tastytrade';
+
+const SUPPORTED_BROKERS: Array<{ value: SupportedBroker; label: string }> = [
+  { value: 'tastytrade', label: 'Tastytrade' },
+];
+
+interface PendingBrokerSelection {
+  broker_accounts: string[];
+}
+
 const getErrorMessage = async (response: Response) => {
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
@@ -31,7 +41,12 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [selectedAccountID, setSelectedAccountID] = useState<string | null>(null);
   const [newAccountName, setNewAccountName] = useState('Primary');
-  const [tastyTradeID, setTastyTradeID] = useState('');
+  const [selectedBroker, setSelectedBroker] = useState<SupportedBroker>('tastytrade');
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [pendingAccountID, setPendingAccountID] = useState<string | null>(null);
+  const [pendingBrokerAccounts, setPendingBrokerAccounts] = useState<string[]>([]);
+  const [selectedPendingBrokerAccountID, setSelectedPendingBrokerAccountID] = useState<string>('');
+  const [loadingPendingBrokerAccounts, setLoadingPendingBrokerAccounts] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [linkingBroker, setLinkingBroker] = useState(false);
@@ -75,7 +90,76 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     void fetchAccounts();
   }, [fetchAccounts]);
 
+  // Handle OAuth callback query params written by the backend redirect.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthSuccess = params.get('oauth_success');
+    const oauthError = params.get('oauth_error');
+    const oauthPending = params.get('oauth_pending');
+    const oauthAccountID = params.get('oauth_account_id');
+    if (oauthSuccess) {
+      setSuccess('Broker account linked successfully.');
+      window.history.replaceState({}, '', window.location.pathname);
+      void fetchAccounts();
+    } else if (oauthPending && oauthAccountID) {
+      setPendingToken(oauthPending);
+      setPendingAccountID(oauthAccountID);
+      setSelectedAccountID(oauthAccountID);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (oauthPending) {
+      setError('Broker callback is missing the account context. Please try connecting again.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (oauthError) {
+      setError(`Failed to connect broker: ${oauthError.replace(/_/g, ' ')}.`);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [fetchAccounts]);
+
+  useEffect(() => {
+    if (!pendingToken || !pendingAccountID) {
+      setPendingBrokerAccounts([]);
+      setSelectedPendingBrokerAccountID('');
+      return;
+    }
+
+    const fetchPendingBrokerAccounts = async () => {
+      setLoadingPendingBrokerAccounts(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          apiUrl(
+            ACCOUNT_SERVICE_BASE_URL,
+            `/accounts/v1/accounts/${pendingAccountID}/brokers?pending_token=${encodeURIComponent(pendingToken)}`,
+          ),
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `${session.token_type} ${session.access_token}`,
+            },
+          },
+        );
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response));
+        }
+        const payload = (await response.json()) as PendingBrokerSelection;
+        setPendingBrokerAccounts(payload.broker_accounts);
+        setSelectedPendingBrokerAccountID(payload.broker_accounts[0] ?? '');
+      } catch (err) {
+        setPendingToken(null);
+        setPendingAccountID(null);
+        setPendingBrokerAccounts([]);
+        setSelectedPendingBrokerAccountID('');
+        setError(err instanceof Error ? err.message : 'Failed to load broker accounts.');
+      } finally {
+        setLoadingPendingBrokerAccounts(false);
+      }
+    };
+
+    void fetchPendingBrokerAccounts();
+  }, [pendingToken, pendingAccountID, session.access_token, session.token_type]);
+
   const selectedAccount = accounts.find((account) => account.account_id === selectedAccountID) ?? null;
+  const pendingLinkAccount = accounts.find((account) => account.account_id === pendingAccountID) ?? selectedAccount;
 
   const handleCreateAccount = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,8 +190,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     }
   };
 
-  const handleLinkBroker = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleConnectBroker = async () => {
     if (!selectedAccount) {
       return;
     }
@@ -116,26 +199,56 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     setSuccess(null);
     try {
       const response = await fetch(
-        apiUrl(ACCOUNT_SERVICE_BASE_URL, `/accounts/v1/accounts/${selectedAccount.account_id}/broker`),
+        apiUrl(ACCOUNT_SERVICE_BASE_URL, `/accounts/v1/accounts/${selectedAccount.account_id}/brokers`),
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `${session.token_type} ${session.access_token}`,
           },
-          body: JSON.stringify({
-            type: 'tastytrade',
-            tastytrade: {
-              id: tastyTradeID.trim(),
-            },
-          }),
+          body: JSON.stringify({ broker: selectedBroker }),
         },
       );
       if (!response.ok) {
         throw new Error(await getErrorMessage(response));
       }
-      setSuccess(`Linked broker account ${tastyTradeID.trim()}.`);
-      setTastyTradeID('');
+      const data = (await response.json()) as { authorization_url: string };
+      // Redirect the browser to Tastytrade's authorization page.
+      window.location.href = data.authorization_url;
+      // Do not reset linkingBroker — the page is navigating away.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start broker connection.');
+      setLinkingBroker(false);
+    }
+  };
+
+  const handleConfirmBrokerSelection = async () => {
+    if (!pendingToken || !pendingAccountID || !selectedPendingBrokerAccountID) {
+      return;
+    }
+    setLinkingBroker(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(apiUrl(ACCOUNT_SERVICE_BASE_URL, `/accounts/v1/accounts/${pendingAccountID}/brokers`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${session.token_type} ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          pending_token: pendingToken,
+          broker_account_id: selectedPendingBrokerAccountID,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+      setPendingToken(null);
+      setPendingAccountID(null);
+      setPendingBrokerAccounts([]);
+      setSelectedPendingBrokerAccountID('');
+      setSuccess('Broker account linked successfully.');
       await fetchAccounts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to link broker account.');
@@ -229,32 +342,113 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
 
       {selectedAccount && (
         <div className="space-y-6">
+          {pendingToken && (
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-xl font-semibold text-white mb-2">Choose Tastytrade Account</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Your Tastytrade login has multiple accounts. Choose which broker account to link to{' '}
+                {pendingLinkAccount?.name ?? 'the selected trading account'}.
+              </p>
+              {pendingLinkAccount && (
+                <p className="text-xs text-gray-500 mb-4">
+                  Linking trading account {pendingLinkAccount.name} ({pendingLinkAccount.account_id})
+                </p>
+              )}
+              {loadingPendingBrokerAccounts ? (
+                <p className="text-gray-400">Loading available broker accounts...</p>
+              ) : pendingBrokerAccounts.length === 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-amber-300">
+                    No broker accounts were returned for this authorization. Try reconnecting the broker.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingToken(null);
+                      setPendingAccountID(null);
+                      setPendingBrokerAccounts([]);
+                      setSelectedPendingBrokerAccountID('');
+                    }}
+                    disabled={linkingBroker}
+                    className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 max-w-sm">
+                    <label className="block text-sm text-gray-300 mb-1">Broker account</label>
+                    <select
+                      value={selectedPendingBrokerAccountID}
+                      onChange={(event) => setSelectedPendingBrokerAccountID(event.target.value)}
+                      disabled={linkingBroker || pendingBrokerAccounts.length === 0}
+                      className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
+                    >
+                      {pendingBrokerAccounts.map((brokerAccountID) => (
+                        <option key={brokerAccountID} value={brokerAccountID}>
+                          {brokerAccountID}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleConfirmBrokerSelection()}
+                      disabled={linkingBroker || selectedPendingBrokerAccountID.length === 0}
+                      className="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium transition"
+                    >
+                      {linkingBroker ? 'Linking...' : 'Link selected account'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingToken(null);
+                        setPendingAccountID(null);
+                        setPendingBrokerAccounts([]);
+                        setSelectedPendingBrokerAccountID('');
+                      }}
+                      disabled={linkingBroker}
+                      className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {!selectedAccount.broker_linked ? (
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-2">Link Tastytrade Broker</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Connect Broker</h3>
               <p className="text-sm text-gray-400 mb-4">
-                Link a broker account before requesting balances for {selectedAccount.name}.
+                Choose a broker and authorize to securely link it to{' '}
+                {selectedAccount.name}.
               </p>
-              <form onSubmit={handleLinkBroker} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="flex-1">
-                  <label className="block text-sm text-gray-300 mb-1">Tastytrade account ID</label>
-                  <input
-                    type="text"
-                    required
-                    value={tastyTradeID}
-                    onChange={(event) => setTastyTradeID(event.target.value)}
-                    className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
-                    placeholder="5WT00000"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={linkingBroker || tastyTradeID.trim().length === 0}
-                  className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white transition"
+              <div className="mb-4 max-w-sm">
+                <label className="block text-sm text-gray-300 mb-1">Broker</label>
+                <select
+                  value={selectedBroker}
+                  onChange={(event) => setSelectedBroker(event.target.value as SupportedBroker)}
+                  disabled={linkingBroker}
+                  className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
                 >
-                  {linkingBroker ? 'Linking...' : 'Link broker'}
-                </button>
-              </form>
+                  {SUPPORTED_BROKERS.map((brokerOption) => (
+                    <option key={brokerOption.value} value={brokerOption.value}>
+                      {brokerOption.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleConnectBroker()}
+                disabled={linkingBroker || pendingToken !== null}
+                className="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium transition"
+              >
+                {linkingBroker ? 'Redirecting...' : 'Connect broker'}
+              </button>
             </div>
           ) : (
             <Balance account={selectedAccount} session={session} />
