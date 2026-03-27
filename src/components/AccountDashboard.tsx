@@ -139,6 +139,9 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
           },
         );
         if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Your broker authorization session has expired. Please try connecting your broker again.');
+          }
           throw new Error(await getErrorMessage(response));
         }
         const payload = (await response.json()) as PendingBrokerSelection;
@@ -157,6 +160,20 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
 
     void fetchPendingBrokerAccounts();
   }, [pendingToken, pendingAccountID, session.access_token, session.token_type]);
+
+  // Guard: if the pending account is already broker-linked (e.g. restored from router cache
+  // after a successful confirmation), clear the stale pending state rather than re-fetching
+  // with a deleted token.
+  useEffect(() => {
+    if (!pendingAccountID) return;
+    const pendingAcc = accounts.find((a) => a.account_id === pendingAccountID);
+    if (pendingAcc?.broker_linked) {
+      setPendingToken(null);
+      setPendingAccountID(null);
+      setPendingBrokerAccounts([]);
+      setSelectedPendingBrokerAccountID('');
+    }
+  }, [accounts, pendingAccountID]);
 
   const selectedAccount = accounts.find((account) => account.account_id === selectedAccountID) ?? null;
   const pendingLinkAccount = accounts.find((account) => account.account_id === pendingAccountID) ?? selectedAccount;
@@ -242,6 +259,14 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
         }),
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          setPendingToken(null);
+          setPendingAccountID(null);
+          setPendingBrokerAccounts([]);
+          setSelectedPendingBrokerAccountID('');
+          void fetchAccounts();
+          throw new Error('Your broker authorization session has expired. Please try connecting your broker again.');
+        }
         throw new Error(await getErrorMessage(response));
       }
       setPendingToken(null);
