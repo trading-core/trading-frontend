@@ -2,7 +2,7 @@ export interface AuthSession {
   access_token: string;
   token_type: string;
   expires_at: string;
-  account_id: string;
+  user_id: string;
   email: string;
 }
 

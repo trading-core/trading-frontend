@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
-import { loadAuthSession } from '@/lib/authSession';
+import { type TradingAccount, type BalanceInfo } from '@/lib/account';
+import { type AuthSession } from '@/lib/authSession';
 
-interface BalanceInfo {
-  account_broker: string;
-  balance: number;
-  currency: string;
+interface BalanceProps {
+  account: TradingAccount;
+  session: AuthSession;
 }
 
-export default function Balance() {
+export default function Balance({ account, session }: BalanceProps) {
   const [data, setData] = useState<BalanceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,20 +20,20 @@ export default function Balance() {
       try {
         setLoading(true);
         setError(null);
-        const session = loadAuthSession();
-        if (!session) {
-          throw new Error('Not authenticated');
-        }
-        const response = await fetch(apiUrl(ACCOUNT_SERVICE_BASE_URL, '/accounts/v1/balance'), {
+        const response = await fetch(
+          apiUrl(ACCOUNT_SERVICE_BASE_URL, `/accounts/v1/accounts/${account.account_id}/balances`),
+          {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `${session.token_type} ${session.access_token}`,
           },
-        });
+          },
+        );
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const message = await response.text();
+          throw new Error(message || `HTTP error! status: ${response.status}`);
         }
 
         const jsonData: BalanceInfo = await response.json();
@@ -46,7 +46,7 @@ export default function Balance() {
     };
 
     fetchBalance();
-  }, []);
+  }, [account.account_id, session.access_token, session.token_type]);
 
   if (loading) {
     return (
@@ -75,10 +75,13 @@ export default function Balance() {
   return (
     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
       <p className="text-gray-400 text-sm mb-2">Account Balance</p>
+      <p className="text-gray-500 text-xs mb-3">{account.name}</p>
       <p className="text-3xl font-bold text-green-400">
         {data.balance.toFixed(2)} {data.currency}
       </p>
-      <p className="text-gray-500 text-xs mt-2">Account Broker: {data.account_broker}</p>
+      <p className="text-gray-500 text-xs mt-2">
+        Account Broker: {data.account?.type ?? account.broker_account?.type ?? 'unlinked'}
+      </p>
     </div>
   );
 }

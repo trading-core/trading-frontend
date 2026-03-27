@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { loadAuthSession } from '@/lib/authSession';
+import { AUTH_SESSION_CHANGED_EVENT, loadAuthSession } from '@/lib/authSession';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,6 +11,7 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const isPublicRoute = useMemo(() => {
     // These routes are accessible without login
@@ -23,12 +24,19 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   const isAccountRoute = useMemo(() => pathname === '/account', [pathname]);
 
-  const hasSession =
-    typeof window !== 'undefined' ? loadAuthSession() !== null : false;
+  useEffect(() => {
+    const refreshSession = () => {
+      setHasSession(loadAuthSession() !== null);
+    };
+
+    refreshSession();
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, refreshSession);
+    return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, refreshSession);
+  }, []);
 
   useEffect(() => {
     // Only redirect account page if not logged in
-    if (isAccountRoute && !hasSession) {
+    if (hasSession === false && isAccountRoute) {
       router.push('/login');
     }
   }, [isAccountRoute, hasSession, router]);

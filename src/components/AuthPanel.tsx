@@ -104,7 +104,7 @@ export default function AuthPanel({ onSessionChange }: AuthPanelProps) {
       {session ? (
         <div className="space-y-3">
           <p className="text-green-300 font-medium">Signed in as {session.email}</p>
-          <p className="text-gray-400 text-sm">Account ID: {session.account_id}</p>
+          <p className="text-gray-400 text-sm">User ID: {session.user_id}</p>
           <p className="text-gray-400 text-sm">Token expires: {new Date(session.expires_at).toLocaleString()}</p>
           <button
             type="button"
