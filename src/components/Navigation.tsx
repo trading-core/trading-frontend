@@ -42,9 +42,14 @@ export default function Navigation() {
             Home
           </Link>
           {isLoggedIn ? (
-            <Link href="/account" className="text-gray-300 hover:text-white transition">
-              Account
-            </Link>
+            <>
+              <Link href="/portfolio" className="text-gray-300 hover:text-white transition">
+                Portfolio
+              </Link>
+              <Link href="/account" className="text-gray-300 hover:text-white transition">
+                Account
+              </Link>
+            </>
           ) : (
             <Link href="/login" className="text-gray-300 hover:text-white transition">
               Login

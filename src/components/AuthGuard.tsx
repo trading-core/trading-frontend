@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AUTH_SESSION_CHANGED_EVENT, loadAuthSession } from '@/lib/authSession';
+import {
+  AUTH_SESSION_CHANGED_EVENT,
+  loadAuthSession,
+  msUntilRefresh,
+  refreshAuthSession,
+} from '@/lib/authSession';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,7 +19,6 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const isPublicRoute = useMemo(() => {
-    // Only the login page is public.
     return pathname === '/login';
   }, [pathname]);
 
@@ -28,19 +32,54 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, refreshSession);
   }, []);
 
+  // Schedule proactive token refresh
   useEffect(() => {
-    // Redirect all protected routes when not logged in.
+    let timer: ReturnType<typeof setTimeout>;
+
+    const scheduleRefresh = () => {
+      const session = loadAuthSession();
+      if (!session) return;
+
+      const delay = msUntilRefresh(session);
+
+      if (delay <= 0) {
+        // Already within threshold — refresh immediately
+        refreshAuthSession().then((newSession) => {
+          if (!newSession) {
+            router.push('/login');
+          } else {
+            scheduleRefresh(); // Reschedule after successful refresh
+          }
+        });
+      } else {
+        timer = setTimeout(async () => {
+          const newSession = await refreshAuthSession();
+          if (!newSession) {
+            router.push('/login');
+          } else {
+            scheduleRefresh(); // Reschedule for the next expiry
+          }
+        }, delay);
+      }
+    };
+
+    if (hasSession) {
+      scheduleRefresh();
+    }
+
+    return () => clearTimeout(timer);
+  }, [hasSession, router]);
+
+  useEffect(() => {
     if (hasSession === false && !isPublicRoute) {
       router.push('/login');
     }
   }, [hasSession, isPublicRoute, router]);
 
-  // Public routes and authenticated users can access anything
   if (isPublicRoute || hasSession) {
     return <>{children}</>;
   }
 
-  // Not on public route and not logged in - show loading while redirecting
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <p className="text-gray-300">Redirecting to login...</p>

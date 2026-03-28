@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
 import SymbolNewsPanel from './SymbolNewsPanel';
+import BotControlPanel from './BotControlPanel';
 import TradingViewAdvancedChartWidget from './TradingViewAdvancedChartWidget';
 import TradingViewCompanyProfileWidget from './TradingViewCompanyProfileWidget';
 import TradingViewTechnicalAnalysisWidget from './TradingViewTechnicalAnalysisWidget';
@@ -215,6 +216,8 @@ export default function StockDetail({ symbol }: StockDetailProps) {
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[240px_minmax(0,1.45fr)_320px] 2xl:grid-cols-[260px_minmax(0,1.7fr)_340px]">
           <div className="space-y-6 xl:order-1">
+            <BotControlPanel />
+
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
               <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Today&apos;s Bar</h2>
               <div className="space-y-4">
