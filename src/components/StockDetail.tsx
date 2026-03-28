@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
+import { getAuthorizationHeader } from '@/lib/authSession';
 
 interface StockDetailData {
   symbol: string;
@@ -35,6 +36,10 @@ export default function StockDetail({ symbol }: StockDetailProps) {
       try {
         setLoading(true);
         setError(null);
+        const authorization = getAuthorizationHeader();
+        if (!authorization) {
+          throw new Error('Unauthorized. Please log in again.');
+        }
         // TODO: Update this endpoint based on your backend API
         const response = await fetch(
           apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/stock/${symbol}`),
@@ -42,6 +47,7 @@ export default function StockDetail({ symbol }: StockDetailProps) {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
+              Authorization: authorization,
             },
           }
         );

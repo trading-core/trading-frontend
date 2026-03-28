@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
+import { getAuthorizationHeader } from '@/lib/authSession';
 
 interface StockImage {
   size: string;
@@ -47,6 +48,10 @@ export default function StockNews({ limit = 10 }: StockNewsProps) {
     try {
       setLoading(true);
       setError(null);
+      const authorization = getAuthorizationHeader();
+      if (!authorization) {
+        throw new Error('Unauthorized. Please log in again.');
+      }
       
       let url = apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/news?limit=${pageSize}`);
       
@@ -62,6 +67,7 @@ export default function StockNews({ limit = 10 }: StockNewsProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: authorization,
         },
       });
 

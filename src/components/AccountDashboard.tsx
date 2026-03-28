@@ -24,6 +24,7 @@ interface PendingBrokerSelection {
 }
 
 interface StoredPendingBrokerSelection {
+  userID: string;
   pendingToken: string;
   pendingAccountID: string;
 }
@@ -42,14 +43,21 @@ const readStoredPendingBrokerSelection = (): StoredPendingBrokerSelection | null
   }
   try {
     const parsed = JSON.parse(rawValue) as Partial<StoredPendingBrokerSelection>;
-    if (typeof parsed.pendingToken !== 'string' || typeof parsed.pendingAccountID !== 'string') {
+    if (
+      typeof parsed.userID !== 'string' ||
+      typeof parsed.pendingToken !== 'string' ||
+      typeof parsed.pendingAccountID !== 'string'
+    ) {
+      clearStoredPendingBrokerSelection();
       return null;
     }
     return {
+      userID: parsed.userID,
       pendingToken: parsed.pendingToken,
       pendingAccountID: parsed.pendingAccountID,
     };
   } catch {
+    clearStoredPendingBrokerSelection();
     return null;
   }
 };
@@ -165,6 +173,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
       setPendingAccountID(oauthAccountID);
       setSelectedAccountID(oauthAccountID);
       writeStoredPendingBrokerSelection({
+        userID: session.user_id,
         pendingToken: oauthPending,
         pendingAccountID: oauthAccountID,
       });
@@ -179,13 +188,20 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
       window.history.replaceState({}, '', window.location.pathname);
     } else {
       const storedSelection = readStoredPendingBrokerSelection();
+      if (!storedSelection) {
+        return;
+      }
+      if (storedSelection.userID !== session.user_id) {
+        clearStoredPendingBrokerSelection();
+        return;
+      }
       if (storedSelection) {
         setPendingToken(storedSelection.pendingToken);
         setPendingAccountID(storedSelection.pendingAccountID);
         setSelectedAccountID(storedSelection.pendingAccountID);
       }
     }
-  }, [clearPendingSelection, fetchAccounts]);
+  }, [clearPendingSelection, fetchAccounts, session.user_id]);
 
   useEffect(() => {
     if (!pendingToken || !pendingAccountID) {
@@ -220,8 +236,8 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
           },
         );
         if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Your broker authorization session has expired. Please try connecting your broker again.');
+          if (response.status === 403 || response.status === 404) {
+            throw new Error('Your broker authorization session is no longer available. Please connect your broker again.');
           }
           throw new Error(await getErrorMessage(response));
         }
@@ -335,10 +351,10 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
         }),
       });
       if (!response.ok) {
-        if (response.status === 404) {
+        if (response.status === 403 || response.status === 404) {
           clearPendingSelection();
           void fetchAccounts();
-          throw new Error('Your broker authorization session has expired. Please try connecting your broker again.');
+          throw new Error('Your broker authorization session is no longer available. Please connect your broker again.');
         }
         throw new Error(await getErrorMessage(response));
       }

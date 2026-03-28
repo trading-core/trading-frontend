@@ -14,15 +14,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const isPublicRoute = useMemo(() => {
-    // These routes are accessible without login
-    const publicRoutes = ['/login', '/', '/stock'];
-    return publicRoutes.some(route => {
-      if (route === '/stock') return pathname.startsWith('/stock/');
-      return pathname === route;
-    });
+    // Only the login page is public.
+    return pathname === '/login';
   }, [pathname]);
-
-  const isAccountRoute = useMemo(() => pathname === '/account', [pathname]);
 
   useEffect(() => {
     const refreshSession = () => {
@@ -35,11 +29,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }, []);
 
   useEffect(() => {
-    // Only redirect account page if not logged in
-    if (hasSession === false && isAccountRoute) {
+    // Redirect all protected routes when not logged in.
+    if (hasSession === false && !isPublicRoute) {
       router.push('/login');
     }
-  }, [isAccountRoute, hasSession, router]);
+  }, [hasSession, isPublicRoute, router]);
 
   // Public routes and authenticated users can access anything
   if (isPublicRoute || hasSession) {

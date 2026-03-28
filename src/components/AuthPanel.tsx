@@ -13,6 +13,8 @@ interface AuthPanelProps {
   onSessionChange?: (session: AuthSession | null) => void;
 }
 
+const PENDING_BROKER_SELECTION_STORAGE_KEY = 'pending-broker-selection';
+
 export default function AuthPanel({ onSessionChange }: AuthPanelProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,6 +89,7 @@ export default function AuthPanel({ onSessionChange }: AuthPanelProps) {
 
   const handleSignOut = () => {
     localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(PENDING_BROKER_SELECTION_STORAGE_KEY);
     setSession(null);
     dispatchSessionChanged();
     onSessionChange?.(null);

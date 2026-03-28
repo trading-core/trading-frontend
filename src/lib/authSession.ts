@@ -30,3 +30,11 @@ export const loadAuthSession = (): AuthSession | null => {
     return null;
   }
 };
+
+export const getAuthorizationHeader = (): string | null => {
+  const session = loadAuthSession();
+  if (!session) {
+    return null;
+  }
+  return `${session.token_type} ${session.access_token}`;
+};

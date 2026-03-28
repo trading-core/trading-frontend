@@ -6,6 +6,7 @@ import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
+import { getAuthorizationHeader } from '@/lib/authSession';
 
 interface MoverStock {
   symbol: string;
@@ -33,12 +34,17 @@ export default function TopStockMovers() {
       try {
         setLoading(true);
         setError(null);
+        const authorization = getAuthorizationHeader();
+        if (!authorization) {
+          throw new Error('Unauthorized. Please log in again.');
+        }
         const response = await fetch(
           apiUrl(STOCK_SCREENER_BASE_URL, `/stock-screener/v1/movers?limit=${limit}`),
           {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
+              Authorization: authorization,
             },
           }
         );

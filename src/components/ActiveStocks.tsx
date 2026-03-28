@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
+import { getAuthorizationHeader } from '@/lib/authSession';
 
 interface ActiveStock {
   symbol: string;
@@ -32,6 +33,10 @@ export default function ActiveStocks({ initialLimit = 10 }: ActiveStocksProps) {
       try {
         setLoading(true);
         setError(null);
+        const authorization = getAuthorizationHeader();
+        if (!authorization) {
+          throw new Error('Unauthorized. Please log in again.');
+        }
         const response = await fetch(
           apiUrl(
             STOCK_SCREENER_BASE_URL,
@@ -41,6 +46,7 @@ export default function ActiveStocks({ initialLimit = 10 }: ActiveStocksProps) {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
+              Authorization: authorization,
             },
           }
         );
