@@ -91,7 +91,7 @@ export default function Balance({ account, session }: BalanceProps) {
         {data.balance.toFixed(2)} {data.currency}
       </p>
       <p className="text-gray-500 text-xs mt-2">
-        Broker: {formatBrokerType(account.broker_account?.type)}
+        Broker: {formatBrokerType(account.broker_account?.account_type)}
       </p>
     </div>
   );

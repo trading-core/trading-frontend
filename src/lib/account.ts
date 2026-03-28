@@ -1,8 +1,6 @@
 export interface BrokerAccount {
-  type: string;
-  tastytrade?: {
-    id: string;
-  };
+  account_type: string;
+  account_id: string;
 }
 
 export interface TradingAccount {
