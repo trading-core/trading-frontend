@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
+import TradingViewStockHeatmapWidget from './TradingViewStockHeatmapWidget';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
 
@@ -115,15 +116,14 @@ export default function TopStockMovers() {
           lastUpdated={data?.last_updated}
         />
 
-        {/* Controls */}
-        <div className="mb-8 flex gap-4 items-center">
-          <label className="text-gray-700 dark:text-gray-300 font-medium">
+        <div className="mb-8 flex items-center gap-4">
+          <label className="font-medium text-gray-700 dark:text-gray-300">
             Show top:
           </label>
           <select
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-zinc-900 text-black dark:text-white"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-black dark:border-gray-600 dark:bg-zinc-900 dark:text-white"
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
@@ -132,7 +132,7 @@ export default function TopStockMovers() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Gainers */}
           <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg overflow-hidden border border-green-200 dark:border-green-900">
             <div className="bg-green-50 dark:bg-green-950 px-6 py-4 border-b border-green-200 dark:border-green-900">
@@ -143,7 +143,7 @@ export default function TopStockMovers() {
                 {data?.gainers.length || 0} stocks
               </p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="max-h-[640px] overflow-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-zinc-800">
@@ -208,7 +208,7 @@ export default function TopStockMovers() {
                 {data?.losers.length || 0} stocks
               </p>
             </div>
-            <div className="overflow-x-auto">
+            <div className="max-h-[640px] overflow-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-zinc-800">
@@ -262,14 +262,25 @@ export default function TopStockMovers() {
               </table>
             </div>
           </div>
+
         </div>
 
-        {/* Most Active Stocks */}
-        <div className="mt-12">
-          <ActiveStocks initialLimit={10} />
+        <div className="mt-12 grid grid-cols-1 gap-8 xl:grid-cols-2">
+          <div>
+            <ActiveStocks initialLimit={10} />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+            <div className="mb-4 px-2">
+              <h2 className="text-2xl font-bold text-black dark:text-white">Heat Map</h2>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                S&amp;P 500 sector performance at a glance.
+              </p>
+            </div>
+            <TradingViewStockHeatmapWidget />
+          </div>
         </div>
 
-        {/* News Section */}
         <div className="mt-12">
           <StockNews limit={10} />
         </div>

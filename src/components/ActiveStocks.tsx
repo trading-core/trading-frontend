@@ -145,7 +145,7 @@ export default function ActiveStocks({ initialLimit = 10 }: ActiveStocksProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-h-[640px] overflow-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-zinc-800">

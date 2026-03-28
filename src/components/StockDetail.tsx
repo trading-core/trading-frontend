@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
+import SymbolNewsPanel from './SymbolNewsPanel';
+import TradingViewAdvancedChartWidget from './TradingViewAdvancedChartWidget';
+import TradingViewCompanyProfileWidget from './TradingViewCompanyProfileWidget';
+import TradingViewTechnicalAnalysisWidget from './TradingViewTechnicalAnalysisWidget';
 
 interface SnapshotBar {
   t: string;
@@ -53,6 +57,10 @@ function formatTime(t: string): string {
   } catch {
     return t;
   }
+}
+
+function formatPrice(value: number): string {
+  return `$${value.toFixed(2)}`;
 }
 
 export default function StockDetail({ symbol }: StockDetailProps) {
@@ -140,11 +148,11 @@ export default function StockDetail({ symbol }: StockDetailProps) {
   const change = data.dailyBar.c - data.prevDailyBar.c;
   const percentChange = (change / data.prevDailyBar.c) * 100;
   const isPositive = change >= 0;
+  const spread = data.latestQuote.ap - data.latestQuote.bp;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
+    <div className="min-h-screen bg-zinc-50 p-6 dark:bg-black xl:p-8">
+      <div className="mx-auto max-w-[1560px]">
         <Link
           href="/"
           className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6"
@@ -152,137 +160,172 @@ export default function StockDetail({ symbol }: StockDetailProps) {
           <span className="mr-2">←</span> Back to Screener
         </Link>
 
-        {/* Header */}
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-8 mb-8 border border-gray-200 dark:border-gray-700">
-          <h1 className="text-5xl font-bold text-black dark:text-white mb-6">
-            {symbol}
-          </h1>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="border-l-4 border-blue-500 pl-4">
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                Last Trade
+        <div className="mb-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-xl dark:border-gray-700 dark:bg-zinc-900">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-3 text-sm uppercase tracking-[0.28em] text-gray-500 dark:text-gray-500">
+                Symbol Overview
               </p>
-              <p className="text-3xl font-bold text-black dark:text-white">
-                ${data.latestTrade.p.toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {formatTime(data.latestTrade.t)}
-              </p>
-            </div>
-
-            <div
-              className={`border-l-4 pl-4 ${isPositive ? 'border-green-500' : 'border-red-500'}`}
-            >
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                Change (1D)
-              </p>
-              <p
-                className={`text-3xl font-bold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-              >
-                {isPositive ? '+' : ''}
-                {change.toFixed(2)} ({percentChange.toFixed(2)}%)
-              </p>
-            </div>
-
-            <div className="border-l-4 border-purple-500 pl-4">
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
-                Volume (Today)
-              </p>
-              <p className="text-3xl font-bold text-black dark:text-white">
-                {formatVolume(data.dailyBar.v)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Today's Bar & Latest Quote */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-black dark:text-white mb-6">
-              Today&apos;s Bar
-            </h2>
-            <div className="space-y-4">
-              {[
-                { label: 'Open', value: `$${data.dailyBar.o.toFixed(2)}` },
-                { label: 'High', value: `$${data.dailyBar.h.toFixed(2)}` },
-                { label: 'Low', value: `$${data.dailyBar.l.toFixed(2)}` },
-                { label: 'Close', value: `$${data.dailyBar.c.toFixed(2)}` },
-                { label: 'VWAP', value: `$${data.dailyBar.vw.toFixed(2)}` },
-                { label: 'Volume', value: formatVolume(data.dailyBar.v) },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-800"
-                >
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {label}
-                  </span>
-                  <span className="font-semibold text-black dark:text-white">
-                    {value}
-                  </span>
+              <h1 className="mb-3 text-5xl font-bold text-black dark:text-white">
+                {symbol.toUpperCase()}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Last Trade</p>
+                  <p className="text-4xl font-bold text-black dark:text-white">
+                    {formatPrice(data.latestTrade.p)}
+                  </p>
                 </div>
-              ))}
+                <div
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold ${
+                    isPositive
+                      ? 'bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300'
+                      : 'bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                  }`}
+                >
+                  {isPositive ? '+' : ''}
+                  {change.toFixed(2)} ({percentChange.toFixed(2)}%)
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-500">
+                Last updated {formatTime(data.latestTrade.t)}
+              </p>
             </div>
-          </div>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-black dark:text-white mb-6">
-              Latest Quote
-            </h2>
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:w-[420px]">
               {[
-                { label: 'Ask Price', value: `$${data.latestQuote.ap.toFixed(2)}` },
-                { label: 'Ask Size', value: data.latestQuote.as.toString() },
-                { label: 'Bid Price', value: `$${data.latestQuote.bp.toFixed(2)}` },
-                { label: 'Bid Size', value: data.latestQuote.bs.toString() },
-                {
-                  label: 'Spread',
-                  value: `$${(data.latestQuote.ap - data.latestQuote.bp).toFixed(4)}`,
-                },
+                { label: 'Prev Close', value: formatPrice(data.prevDailyBar.c) },
+                { label: 'Today Volume', value: formatVolume(data.dailyBar.v) },
+                { label: 'Bid/Ask Spread', value: `$${spread.toFixed(4)}` },
+                { label: 'VWAP', value: formatPrice(data.dailyBar.vw) },
               ].map(({ label, value }) => (
                 <div
                   key={label}
-                  className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-800"
+                  className="rounded-2xl border border-gray-200 bg-zinc-50 px-4 py-3 dark:border-gray-800 dark:bg-black"
                 >
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <p className="mb-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">
                     {label}
-                  </span>
-                  <span className="font-semibold text-black dark:text-white">
-                    {value}
-                  </span>
+                  </p>
+                  <p className="text-sm font-semibold text-black dark:text-white">{value}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Previous Day */}
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-black dark:text-white mb-6">
-            Previous Day
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {[
-              { label: 'Open', value: `$${data.prevDailyBar.o.toFixed(2)}` },
-              { label: 'High', value: `$${data.prevDailyBar.h.toFixed(2)}` },
-              { label: 'Low', value: `$${data.prevDailyBar.l.toFixed(2)}` },
-              { label: 'Close', value: `$${data.prevDailyBar.c.toFixed(2)}` },
-              { label: 'VWAP', value: `$${data.prevDailyBar.vw.toFixed(2)}` },
-              { label: 'Volume', value: formatVolume(data.prevDailyBar.v) },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="border-l-4 border-gray-300 dark:border-gray-600 pl-4"
-              >
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  {label}
-                </p>
-                <p className="font-semibold text-black dark:text-white">
-                  {value}
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[240px_minmax(0,1.45fr)_320px] 2xl:grid-cols-[260px_minmax(0,1.7fr)_340px]">
+          <div className="space-y-6 xl:order-1">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Today&apos;s Bar</h2>
+              <div className="space-y-4">
+                {[
+                  { label: 'Open', value: formatPrice(data.dailyBar.o) },
+                  { label: 'High', value: formatPrice(data.dailyBar.h) },
+                  { label: 'Low', value: formatPrice(data.dailyBar.l) },
+                  { label: 'Close', value: formatPrice(data.dailyBar.c) },
+                  { label: 'VWAP', value: formatPrice(data.dailyBar.vw) },
+                  { label: 'Volume', value: formatVolume(data.dailyBar.v) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{label}</span>
+                    <span className="font-semibold text-black dark:text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Latest Quote</h2>
+              <div className="space-y-4">
+                {[
+                  { label: 'Ask Price', value: formatPrice(data.latestQuote.ap) },
+                  { label: 'Ask Size', value: data.latestQuote.as.toString() },
+                  { label: 'Bid Price', value: formatPrice(data.latestQuote.bp) },
+                  { label: 'Bid Size', value: data.latestQuote.bs.toString() },
+                  { label: 'Spread', value: `$${spread.toFixed(4)}` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{label}</span>
+                    <span className="font-semibold text-black dark:text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Previous Day</h2>
+              <div className="space-y-4">
+                {[
+                  { label: 'Open', value: formatPrice(data.prevDailyBar.o) },
+                  { label: 'High', value: formatPrice(data.prevDailyBar.h) },
+                  { label: 'Low', value: formatPrice(data.prevDailyBar.l) },
+                  { label: 'Close', value: formatPrice(data.prevDailyBar.c) },
+                  { label: 'VWAP', value: formatPrice(data.prevDailyBar.vw) },
+                  { label: 'Volume', value: formatVolume(data.prevDailyBar.v) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{label}</span>
+                    <span className="font-semibold text-black dark:text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6 xl:order-2">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <div className="mb-4 px-2 pt-2">
+                <h2 className="text-2xl font-bold text-black dark:text-white">Chart</h2>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Price action anchored around the current symbol.
                 </p>
               </div>
-            ))}
+              <TradingViewAdvancedChartWidget symbol={symbol} />
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Company Profile</h2>
+              <TradingViewCompanyProfileWidget symbol={symbol} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[
+                {
+                  label: 'Minute Close',
+                  value: formatPrice(data.minuteBar.c),
+                  accent: 'border-cyan-500',
+                },
+                {
+                  label: 'Minute Range',
+                  value: `${formatPrice(data.minuteBar.l)} - ${formatPrice(data.minuteBar.h)}`,
+                  accent: 'border-amber-500',
+                },
+                {
+                  label: 'Minute Volume',
+                  value: formatVolume(data.minuteBar.v),
+                  accent: 'border-fuchsia-500',
+                },
+              ].map(({ label, value, accent }) => (
+                <div
+                  key={label}
+                  className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-lg dark:border-gray-700 dark:bg-zinc-900 ${accent}`}
+                >
+                  <p className="mb-2 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">
+                    {label}
+                  </p>
+                  <p className="text-lg font-semibold text-black dark:text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6 xl:order-3">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+              <h2 className="mb-5 text-xl font-bold text-black dark:text-white">Technicals</h2>
+              <TradingViewTechnicalAnalysisWidget symbol={symbol} />
+            </div>
+
+            <SymbolNewsPanel symbol={symbol} />
           </div>
         </div>
       </div>
