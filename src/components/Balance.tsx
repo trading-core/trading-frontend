@@ -85,12 +85,29 @@ export default function Balance({ account, session }: BalanceProps) {
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <p className="text-gray-400 text-sm mb-2">Account Balance</p>
-      <p className="text-gray-500 text-xs mb-3">{account.name}</p>
-      <p className="text-3xl font-bold text-green-400">
-        {data.balance.toFixed(2)} {data.currency}
-      </p>
-      <p className="text-gray-500 text-xs mt-2">
+      <p className="text-gray-400 text-sm mb-1">Account Balance</p>
+      <p className="text-gray-500 text-xs mb-4">{account.name}</p>
+      <div className="space-y-3">
+        <div className="flex justify-between items-baseline">
+          <span className="text-gray-400 text-sm">Net Liq</span>
+          <span className="text-green-400 text-xl font-bold">
+            {data.net_liquidating_value.toFixed(2)} {data.currency}
+          </span>
+        </div>
+        <div className="flex justify-between items-baseline">
+          <span className="text-gray-400 text-sm">Cash</span>
+          <span className="text-white text-base font-medium">
+            {data.cash_balance.toFixed(2)} {data.currency}
+          </span>
+        </div>
+        <div className="flex justify-between items-baseline">
+          <span className="text-gray-400 text-sm">Equity BP</span>
+          <span className="text-white text-base font-medium">
+            {data.equity_buying_power.toFixed(2)} {data.currency}
+          </span>
+        </div>
+      </div>
+      <p className="text-gray-500 text-xs mt-4">
         Broker: {formatBrokerType(account.broker_account?.account_type)}
       </p>
     </div>

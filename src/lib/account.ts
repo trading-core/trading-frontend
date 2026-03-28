@@ -17,6 +17,8 @@ export interface CreateAccountResponse {
 }
 
 export interface BalanceInfo {
-  balance: number;
+  net_liquidating_value: number;
+  cash_balance: number;
+  equity_buying_power: number;
   currency: string;
 }
