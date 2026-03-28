@@ -16,9 +16,57 @@ const SUPPORTED_BROKERS: Array<{ value: SupportedBroker; label: string }> = [
   { value: 'tastytrade', label: 'Tastytrade' },
 ];
 
+const PENDING_BROKER_SELECTION_STORAGE_KEY = 'pending-broker-selection';
+
 interface PendingBrokerSelection {
+  broker: SupportedBroker;
   broker_accounts: string[];
 }
+
+interface StoredPendingBrokerSelection {
+  pendingToken: string;
+  pendingAccountID: string;
+}
+
+const formatBrokerLabel = (broker: SupportedBroker | null) => {
+  return SUPPORTED_BROKERS.find((option) => option.value === broker)?.label ?? 'Broker';
+};
+
+const readStoredPendingBrokerSelection = (): StoredPendingBrokerSelection | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const rawValue = window.sessionStorage.getItem(PENDING_BROKER_SELECTION_STORAGE_KEY);
+  if (!rawValue) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<StoredPendingBrokerSelection>;
+    if (typeof parsed.pendingToken !== 'string' || typeof parsed.pendingAccountID !== 'string') {
+      return null;
+    }
+    return {
+      pendingToken: parsed.pendingToken,
+      pendingAccountID: parsed.pendingAccountID,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredPendingBrokerSelection = (selection: StoredPendingBrokerSelection) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.sessionStorage.setItem(PENDING_BROKER_SELECTION_STORAGE_KEY, JSON.stringify(selection));
+};
+
+const clearStoredPendingBrokerSelection = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.sessionStorage.removeItem(PENDING_BROKER_SELECTION_STORAGE_KEY);
+};
 
 const getErrorMessage = async (response: Response) => {
   const contentType = response.headers.get('content-type') ?? '';
@@ -45,6 +93,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [pendingAccountID, setPendingAccountID] = useState<string | null>(null);
   const [pendingBrokerAccounts, setPendingBrokerAccounts] = useState<string[]>([]);
+  const [pendingBroker, setPendingBroker] = useState<SupportedBroker | null>(null);
   const [selectedPendingBrokerAccountID, setSelectedPendingBrokerAccountID] = useState<string>('');
   const [loadingPendingBrokerAccounts, setLoadingPendingBrokerAccounts] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
@@ -52,6 +101,15 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
   const [linkingBroker, setLinkingBroker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const clearPendingSelection = useCallback(() => {
+    setPendingToken(null);
+    setPendingAccountID(null);
+    setPendingBroker(null);
+    setPendingBrokerAccounts([]);
+    setSelectedPendingBrokerAccountID('');
+    clearStoredPendingBrokerSelection();
+  }, []);
 
   const fetchAccounts = useCallback(async () => {
     setLoadingAccounts(true);
@@ -99,26 +157,49 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     const oauthAccountID = params.get('oauth_account_id');
     if (oauthSuccess) {
       setSuccess('Broker account linked successfully.');
+      clearPendingSelection();
       window.history.replaceState({}, '', window.location.pathname);
       void fetchAccounts();
     } else if (oauthPending && oauthAccountID) {
       setPendingToken(oauthPending);
       setPendingAccountID(oauthAccountID);
       setSelectedAccountID(oauthAccountID);
+      writeStoredPendingBrokerSelection({
+        pendingToken: oauthPending,
+        pendingAccountID: oauthAccountID,
+      });
       window.history.replaceState({}, '', window.location.pathname);
     } else if (oauthPending) {
       setError('Broker callback is missing the account context. Please try connecting again.');
+      clearPendingSelection();
       window.history.replaceState({}, '', window.location.pathname);
     } else if (oauthError) {
       setError(`Failed to connect broker: ${oauthError.replace(/_/g, ' ')}.`);
+      clearPendingSelection();
       window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      const storedSelection = readStoredPendingBrokerSelection();
+      if (storedSelection) {
+        setPendingToken(storedSelection.pendingToken);
+        setPendingAccountID(storedSelection.pendingAccountID);
+        setSelectedAccountID(storedSelection.pendingAccountID);
+      }
     }
-  }, [fetchAccounts]);
+  }, [clearPendingSelection, fetchAccounts]);
 
   useEffect(() => {
     if (!pendingToken || !pendingAccountID) {
+      setPendingBroker(null);
       setPendingBrokerAccounts([]);
       setSelectedPendingBrokerAccountID('');
+      return;
+    }
+    if (loadingAccounts) {
+      return;
+    }
+    const pendingAccount = accounts.find((account) => account.account_id === pendingAccountID);
+    if (pendingAccount?.broker_linked) {
+      clearPendingSelection();
       return;
     }
 
@@ -145,13 +226,11 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
           throw new Error(await getErrorMessage(response));
         }
         const payload = (await response.json()) as PendingBrokerSelection;
+        setPendingBroker(payload.broker);
         setPendingBrokerAccounts(payload.broker_accounts);
         setSelectedPendingBrokerAccountID(payload.broker_accounts[0] ?? '');
       } catch (err) {
-        setPendingToken(null);
-        setPendingAccountID(null);
-        setPendingBrokerAccounts([]);
-        setSelectedPendingBrokerAccountID('');
+        clearPendingSelection();
         setError(err instanceof Error ? err.message : 'Failed to load broker accounts.');
       } finally {
         setLoadingPendingBrokerAccounts(false);
@@ -159,7 +238,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     };
 
     void fetchPendingBrokerAccounts();
-  }, [pendingToken, pendingAccountID, session.access_token, session.token_type]);
+  }, [accounts, clearPendingSelection, loadingAccounts, pendingAccountID, pendingToken, session.access_token, session.token_type]);
 
   // Guard: if the pending account is already broker-linked (e.g. restored from router cache
   // after a successful confirmation), clear the stale pending state rather than re-fetching
@@ -168,12 +247,9 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
     if (!pendingAccountID) return;
     const pendingAcc = accounts.find((a) => a.account_id === pendingAccountID);
     if (pendingAcc?.broker_linked) {
-      setPendingToken(null);
-      setPendingAccountID(null);
-      setPendingBrokerAccounts([]);
-      setSelectedPendingBrokerAccountID('');
+      clearPendingSelection();
     }
-  }, [accounts, pendingAccountID]);
+  }, [accounts, clearPendingSelection, pendingAccountID]);
 
   const selectedAccount = accounts.find((account) => account.account_id === selectedAccountID) ?? null;
   const pendingLinkAccount = accounts.find((account) => account.account_id === pendingAccountID) ?? selectedAccount;
@@ -260,19 +336,13 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
       });
       if (!response.ok) {
         if (response.status === 404) {
-          setPendingToken(null);
-          setPendingAccountID(null);
-          setPendingBrokerAccounts([]);
-          setSelectedPendingBrokerAccountID('');
+          clearPendingSelection();
           void fetchAccounts();
           throw new Error('Your broker authorization session has expired. Please try connecting your broker again.');
         }
         throw new Error(await getErrorMessage(response));
       }
-      setPendingToken(null);
-      setPendingAccountID(null);
-      setPendingBrokerAccounts([]);
-      setSelectedPendingBrokerAccountID('');
+      clearPendingSelection();
       setSuccess('Broker account linked successfully.');
       await fetchAccounts();
     } catch (err) {
@@ -369,9 +439,9 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
         <div className="space-y-6">
           {pendingToken && (
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-2">Choose Tastytrade Account</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Choose {formatBrokerLabel(pendingBroker)} Account</h3>
               <p className="text-sm text-gray-400 mb-4">
-                Your Tastytrade login has multiple accounts. Choose which broker account to link to{' '}
+                Your {formatBrokerLabel(pendingBroker)} login has multiple accounts. Choose which broker account to link to{' '}
                 {pendingLinkAccount?.name ?? 'the selected trading account'}.
               </p>
               {pendingLinkAccount && (
@@ -389,10 +459,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
                   <button
                     type="button"
                     onClick={() => {
-                      setPendingToken(null);
-                      setPendingAccountID(null);
-                      setPendingBrokerAccounts([]);
-                      setSelectedPendingBrokerAccountID('');
+                      clearPendingSelection();
                     }}
                     disabled={linkingBroker}
                     className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"
@@ -429,10 +496,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
                     <button
                       type="button"
                       onClick={() => {
-                        setPendingToken(null);
-                        setPendingAccountID(null);
-                        setPendingBrokerAccounts([]);
-                        setSelectedPendingBrokerAccountID('');
+                        clearPendingSelection();
                       }}
                       disabled={linkingBroker}
                       className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"

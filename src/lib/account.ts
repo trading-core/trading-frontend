@@ -19,7 +19,6 @@ export interface CreateAccountResponse {
 }
 
 export interface BalanceInfo {
-  account?: BrokerAccount;
   balance: number;
   currency: string;
 }

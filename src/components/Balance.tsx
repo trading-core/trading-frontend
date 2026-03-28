@@ -10,6 +10,17 @@ interface BalanceProps {
   session: AuthSession;
 }
 
+const formatBrokerType = (brokerType?: string) => {
+  if (!brokerType) {
+    return 'Unlinked';
+  }
+  return brokerType
+    .split(/[-_]/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
 export default function Balance({ account, session }: BalanceProps) {
   const [data, setData] = useState<BalanceInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +91,7 @@ export default function Balance({ account, session }: BalanceProps) {
         {data.balance.toFixed(2)} {data.currency}
       </p>
       <p className="text-gray-500 text-xs mt-2">
-        Account Broker: {data.account?.type ?? account.broker_account?.type ?? 'unlinked'}
+        Broker: {formatBrokerType(account.broker_account?.type)}
       </p>
     </div>
   );
