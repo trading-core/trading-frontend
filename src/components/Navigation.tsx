@@ -43,8 +43,8 @@ export default function Navigation() {
           </Link>
           {isLoggedIn ? (
             <>
-              <Link href="/portfolio" className="text-gray-300 hover:text-white transition">
-                Portfolio
+              <Link href="/bots" className="text-gray-300 hover:text-white transition">
+                My Bots
               </Link>
               <Link href="/account" className="text-gray-300 hover:text-white transition">
                 Account

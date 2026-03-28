@@ -6,36 +6,50 @@ export default function TradingViewStockHeatmapWidget() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) {
+    const container = containerRef.current;
+    if (!container) {
       return;
     }
 
-    containerRef.current.innerHTML = '';
+    let isDisposed = false;
+    container.replaceChildren();
 
-    const script = document.createElement('script');
-    script.src =
-      'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      dataSource: 'SPX500',
-      blockSize: 'market_cap_basic',
-      blockColor: 'change',
-      grouping: 'sector',
-      locale: 'en',
-      symbolUrl: '',
-      colorTheme: 'dark',
-      exchanges: [],
-      hasTopBar: false,
-      isDataSetEnabled: false,
-      isZoomEnabled: true,
-      hasSymbolTooltip: true,
-      isMonoSize: false,
-      width: '100%',
-      height: '100%',
-    });
+    const timeoutID = window.setTimeout(() => {
+      if (isDisposed || !container.isConnected) {
+        return;
+      }
 
-    containerRef.current.appendChild(script);
+      const script = document.createElement('script');
+      script.src =
+        'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        dataSource: 'SPX500',
+        blockSize: 'market_cap_basic',
+        blockColor: 'change',
+        grouping: 'sector',
+        locale: 'en',
+        symbolUrl: '',
+        colorTheme: 'dark',
+        exchanges: [],
+        hasTopBar: false,
+        isDataSetEnabled: false,
+        isZoomEnabled: true,
+        hasSymbolTooltip: true,
+        isMonoSize: false,
+        width: '100%',
+        height: '100%',
+      });
+
+      container.appendChild(script);
+    }, 0);
+
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timeoutID);
+      container.replaceChildren();
+    };
   }, []);
 
   return (

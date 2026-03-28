@@ -12,27 +12,41 @@ export default function TradingViewCompanyProfileWidget({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !symbol) {
+    const container = containerRef.current;
+    if (!container || !symbol) {
       return;
     }
 
-    containerRef.current.innerHTML = '';
+    let isDisposed = false;
+    container.replaceChildren();
 
-    const script = document.createElement('script');
-    script.src =
-      'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbol: symbol.toUpperCase(),
-      width: '100%',
-      height: 420,
-      colorTheme: 'dark',
-      isTransparent: false,
-      locale: 'en',
-    });
+    const timeoutID = window.setTimeout(() => {
+      if (isDisposed || !container.isConnected) {
+        return;
+      }
 
-    containerRef.current.appendChild(script);
+      const script = document.createElement('script');
+      script.src =
+        'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbol: symbol.toUpperCase(),
+        width: '100%',
+        height: 420,
+        colorTheme: 'dark',
+        isTransparent: false,
+        locale: 'en',
+      });
+
+      container.appendChild(script);
+    }, 0);
+
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timeoutID);
+      container.replaceChildren();
+    };
   }, [symbol]);
 
   return (

@@ -29,6 +29,7 @@ export default function BotControlPanel() {
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const linkedAccounts = accounts.filter((account) => account.broker_linked);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -51,9 +52,8 @@ export default function BotControlPanel() {
         }
         const data: TradingAccount[] = await response.json();
         setAccounts(data);
-        if (data.length > 0) {
-          setSelectedAccountId(data[0].account_id);
-        }
+        const firstLinkedAccount = data.find((account) => account.broker_linked);
+        setSelectedAccountId(firstLinkedAccount?.account_id ?? '');
       } catch {
         // Account selector can stay empty if loading fails.
       } finally {
@@ -230,19 +230,36 @@ export default function BotControlPanel() {
             ) : accounts.length === 0 ? (
               <p className="text-xs text-gray-500 dark:text-gray-400">No accounts found</p>
             ) : (
-              <select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                disabled={isRunning || isLoading}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.account_id} value={acc.account_id}>
-                    {acc.name}
-                    {acc.broker_account ? ` · ${acc.broker_account.account_id}` : ''}
-                  </option>
-                ))}
-              </select>
+              <>
+                <select
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  disabled={isRunning || isLoading}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                >
+                  {linkedAccounts.length === 0 ? (
+                    <option value="" disabled>
+                      No linked accounts available
+                    </option>
+                  ) : null}
+                  {accounts.map((acc) => (
+                    <option
+                      key={acc.account_id}
+                      value={acc.account_id}
+                      disabled={!acc.broker_linked}
+                    >
+                      {acc.name}
+                      {acc.broker_account ? ` · ${acc.broker_account.account_id}` : ''}
+                      {!acc.broker_linked ? ' · Link broker first' : ''}
+                    </option>
+                  ))}
+                </select>
+                {linkedAccounts.length === 0 ? (
+                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Link a broker account first before starting bots from this panel.
+                  </p>
+                ) : null}
+              </>
             )}
           </div>
 

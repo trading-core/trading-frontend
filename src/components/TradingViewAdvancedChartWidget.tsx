@@ -12,40 +12,54 @@ export default function TradingViewAdvancedChartWidget({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !symbol) {
+    const container = containerRef.current;
+    if (!container || !symbol) {
       return;
     }
 
-    containerRef.current.innerHTML = '';
+    let isDisposed = false;
+    container.replaceChildren();
 
-    const script = document.createElement('script');
-    script.src =
-      'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      allow_symbol_change: false,
-      calendar: false,
-      details: false,
-      hide_side_toolbar: true,
-      hide_top_toolbar: false,
-      hide_legend: false,
-      hide_volume: false,
-      hotlist: false,
-      interval: 'D',
-      locale: 'en',
-      save_image: true,
-      style: '1',
-      symbol: symbol.toUpperCase(),
-      theme: 'dark',
-      timezone: 'Etc/UTC',
-      backgroundColor: '#09090B',
-      gridColor: 'rgba(255, 255, 255, 0.06)',
-      withdateranges: true,
-      autosize: true,
-    });
+    const timeoutID = window.setTimeout(() => {
+      if (isDisposed || !container.isConnected) {
+        return;
+      }
 
-    containerRef.current.appendChild(script);
+      const script = document.createElement('script');
+      script.src =
+        'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        allow_symbol_change: false,
+        calendar: false,
+        details: false,
+        hide_side_toolbar: true,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_volume: false,
+        hotlist: false,
+        interval: 'D',
+        locale: 'en',
+        save_image: true,
+        style: '1',
+        symbol: symbol.toUpperCase(),
+        theme: 'dark',
+        timezone: 'Etc/UTC',
+        backgroundColor: '#09090B',
+        gridColor: 'rgba(255, 255, 255, 0.06)',
+        withdateranges: true,
+        autosize: true,
+      });
+
+      container.appendChild(script);
+    }, 0);
+
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timeoutID);
+      container.replaceChildren();
+    };
   }, [symbol]);
 
   return (

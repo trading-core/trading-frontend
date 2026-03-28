@@ -12,31 +12,45 @@ export default function TradingViewTechnicalAnalysisWidget({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !symbol) {
+    const container = containerRef.current;
+    if (!container || !symbol) {
       return;
     }
 
-    containerRef.current.innerHTML = '';
+    let isDisposed = false;
+    container.replaceChildren();
 
-    const script = document.createElement('script');
-    script.src =
-      'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      colorTheme: 'dark',
-      displayMode: 'single',
-      isTransparent: false,
-      locale: 'en',
-      interval: '1m',
-      disableInterval: false,
-      width: '100%',
-      height: 430,
-      symbol: symbol.toUpperCase(),
-      showIntervalTabs: true,
-    });
+    const timeoutID = window.setTimeout(() => {
+      if (isDisposed || !container.isConnected) {
+        return;
+      }
 
-    containerRef.current.appendChild(script);
+      const script = document.createElement('script');
+      script.src =
+        'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        colorTheme: 'dark',
+        displayMode: 'single',
+        isTransparent: false,
+        locale: 'en',
+        interval: '1m',
+        disableInterval: false,
+        width: '100%',
+        height: 430,
+        symbol: symbol.toUpperCase(),
+        showIntervalTabs: true,
+      });
+
+      container.appendChild(script);
+    }, 0);
+
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timeoutID);
+      container.replaceChildren();
+    };
   }, [symbol]);
 
   return (
