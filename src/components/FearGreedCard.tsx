@@ -67,7 +67,7 @@ export default function FearGreedCard() {
           throw new Error('Unauthorized. Please log in again.');
         }
 
-        const response = await fetch(apiUrl(STOCK_SCREENER_BASE_URL, '/stock-screener/v1/sentiment/fear-greed'), {
+        const response = await fetch(apiUrl(STOCK_SCREENER_BASE_URL, '/stock-screener/v1/sentiments/fear-greed'), {
           method: 'GET',
           cache: 'no-store',
           headers: {
