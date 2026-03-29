@@ -35,7 +35,7 @@ export default function TradingViewTechnicalAnalysisWidget({
         displayMode: 'single',
         isTransparent: false,
         locale: 'en',
-        interval: '1m',
+        interval: '1h',
         disableInterval: false,
         width: '100%',
         height: 430,

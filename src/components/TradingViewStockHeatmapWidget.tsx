@@ -19,6 +19,8 @@ export default function TradingViewStockHeatmapWidget() {
         return;
       }
 
+      const symbolUrl = `${window.location.origin}/stock/{tvsymbol}`;
+
       const script = document.createElement('script');
       script.src =
         'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
@@ -30,7 +32,7 @@ export default function TradingViewStockHeatmapWidget() {
         blockColor: 'change',
         grouping: 'sector',
         locale: 'en',
-        symbolUrl: '',
+        symbolUrl,
         colorTheme: 'dark',
         exchanges: [],
         hasTopBar: false,

@@ -6,6 +6,7 @@ import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
 import TradingViewStockHeatmapWidget from './TradingViewStockHeatmapWidget';
+import FearGreedCard from './FearGreedCard';
 import { STOCK_SCREENER_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
 
@@ -116,20 +117,20 @@ export default function TopStockMovers() {
           lastUpdated={data?.last_updated}
         />
 
-        <div className="mb-8 flex items-center gap-4">
-          <label className="font-medium text-gray-700 dark:text-gray-300">
-            Show top:
-          </label>
-          <select
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-black dark:border-gray-600 dark:bg-zinc-900 dark:text-white"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-zinc-900">
+          <div className="flex items-center gap-4">
+            <label className="font-medium text-gray-700 dark:text-gray-300">Show top:</label>
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-black dark:border-gray-600 dark:bg-zinc-900 dark:text-white"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
         </div>
 
         <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -270,15 +271,17 @@ export default function TopStockMovers() {
             <ActiveStocks initialLimit={10} />
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
-            <div className="mb-4 px-2">
-              <h2 className="text-2xl font-bold text-black dark:text-white">Heat Map</h2>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                S&amp;P 500 sector performance at a glance.
-              </p>
-            </div>
-            <TradingViewStockHeatmapWidget />
+          <FearGreedCard />
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-zinc-900">
+          <div className="mb-4 px-2">
+            <h2 className="text-2xl font-bold text-black dark:text-white">Heat Map</h2>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              S&amp;P 500 sector performance at a glance.
+            </p>
           </div>
+          <TradingViewStockHeatmapWidget />
         </div>
 
         <div className="mt-12">
