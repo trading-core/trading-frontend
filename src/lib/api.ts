@@ -13,9 +13,14 @@ const authBase =
   process.env.NEXT_PUBLIC_AUTH_SERVICE_BASE_URL ??
   'http://localhost:9100';
 
+const botBase =
+  process.env.NEXT_PUBLIC_BOT_SERVICE_BASE_URL ??
+  'http://localhost:8081';
+
 export const ACCOUNT_SERVICE_BASE_URL = trimTrailingSlash(accountBase);
 export const STOCK_SCREENER_BASE_URL = trimTrailingSlash(stockScreenerBase);
 export const AUTH_SERVICE_BASE_URL = trimTrailingSlash(authBase);
+export const BOT_SERVICE_BASE_URL = trimTrailingSlash(botBase);
 
 export const apiUrl = (baseUrl: string, path: string) => {
   if (path.startsWith('/')) {

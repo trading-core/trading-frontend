@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
 import { type TradingAccount } from '@/lib/account';
+import {
+  createBot,
+  listBots,
+  type TradingBot,
+  updateBotStatus,
+} from '@/lib/bot';
 
 interface ActivityLog {
   id: string;
@@ -12,10 +18,18 @@ interface ActivityLog {
   status: 'success' | 'error' | 'info';
 }
 
-export default function BotControlPanel() {
-  const [isRunning, setIsRunning] = useState(false);
+interface BotControlPanelProps {
+  symbol: string;
+}
+
+export default function BotControlPanel({ symbol }: BotControlPanelProps) {
+  const normalizedPageSymbol = symbol.trim().toUpperCase();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createSymbol, setCreateSymbol] = useState(normalizedPageSymbol);
+  const [createStrategyTradeType, setCreateStrategyTradeType] = useState('momentum_breakout');
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [bots, setBots] = useState<TradingBot[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([
@@ -29,7 +43,16 @@ export default function BotControlPanel() {
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const linkedAccounts = accounts.filter((account) => account.broker_linked);
+  const linkedAccounts = accounts.filter((account) => account.broker_linked && !!account.broker_account);
+  const activeBot = selectedAccountId
+    ? bots.find(
+        (bot) =>
+          bot.account_id === selectedAccountId &&
+          bot.symbol.trim().toUpperCase() === normalizedPageSymbol
+      )
+    : undefined;
+  const selectedAccount = accounts.find((account) => account.account_id === selectedAccountId);
+  const isRunning = activeBot?.status === 'running';
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -39,14 +62,11 @@ export default function BotControlPanel() {
         if (!authorization) {
           return;
         }
-        const response = await fetch(
-          apiUrl(ACCOUNT_SERVICE_BASE_URL, '/accounts/v1/accounts'),
-          {
-            headers: {
-              Authorization: authorization,
-            },
-          }
-        );
+        const response = await fetch(apiUrl(ACCOUNT_SERVICE_BASE_URL, '/accounts/v1/accounts'), {
+          headers: {
+            Authorization: authorization,
+          },
+        });
         if (!response.ok) {
           return;
         }
@@ -54,6 +74,8 @@ export default function BotControlPanel() {
         setAccounts(data);
         const firstLinkedAccount = data.find((account) => account.broker_linked);
         setSelectedAccountId(firstLinkedAccount?.account_id ?? '');
+        const loadedBots = await listBots(authorization);
+        setBots(loadedBots);
       } catch {
         // Account selector can stay empty if loading fails.
       } finally {
@@ -63,6 +85,10 @@ export default function BotControlPanel() {
 
     void fetchAccounts();
   }, []);
+
+  useEffect(() => {
+    setCreateSymbol(normalizedPageSymbol);
+  }, [normalizedPageSymbol]);
 
   const addLog = (action: string, status: 'success' | 'error' | 'info') => {
     const newEntry: ActivityLog = {
@@ -113,9 +139,21 @@ export default function BotControlPanel() {
   const handleStart = async () => {
     setIsLoading(true);
     try {
-      // TODO: POST /bots with { symbol, account_id: selectedAccountId }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsRunning(true);
+      const authorization = getAuthorizationHeader();
+      if (!authorization || !selectedAccountId) {
+        addLog('Missing session or account selection', 'error');
+        return;
+      }
+
+      let botID = activeBot?.id;
+      if (!botID) {
+        setCreateSymbol(normalizedPageSymbol);
+        setCreateStrategyTradeType('momentum_breakout');
+        setIsCreateModalOpen(true);
+        return;
+      }
+      await updateBotStatus(authorization, botID, 'running');
+      setBots(await listBots(authorization));
       const account = accounts.find((a) => a.account_id === selectedAccountId);
       addLog(`Bot started on ${account?.name ?? selectedAccountId}`, 'success');
     } catch {
@@ -128,12 +166,47 @@ export default function BotControlPanel() {
   const handleStop = async () => {
     setIsLoading(true);
     try {
-      // TODO: DELETE /bots/{id}
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsRunning(false);
+      const authorization = getAuthorizationHeader();
+      if (!authorization || !activeBot) {
+        addLog('No running bot found for this account', 'error');
+        return;
+      }
+      await updateBotStatus(authorization, activeBot.id, 'stopped');
+      setBots(await listBots(authorization));
       addLog('Bot stopped', 'success');
     } catch {
       addLog('Failed to stop bot', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmCreateBot = async () => {
+    const authorization = getAuthorizationHeader();
+    if (!authorization || !selectedAccountId) {
+      addLog('Missing session or account selection', 'error');
+      return;
+    }
+    const symbol = createSymbol.trim().toUpperCase();
+    const strategyTradeType = createStrategyTradeType.trim();
+    if (!symbol || !strategyTradeType) {
+      addLog('Symbol and strategy trade type are required', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const newBot = await createBot(authorization, {
+        account_id: selectedAccountId,
+        symbol,
+        strategy_trade_type: strategyTradeType,
+      });
+      await updateBotStatus(authorization, newBot.id, 'running');
+      setBots(await listBots(authorization));
+      addLog(`Bot started on ${selectedAccount?.name ?? selectedAccountId}`, 'success');
+      setIsCreateModalOpen(false);
+    } catch {
+      addLog('Failed to create and start bot', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -211,6 +284,9 @@ export default function BotControlPanel() {
                 <p className={`text-lg font-bold ${getStatusTextColor()}`}>
                   {isRunning ? '● Running' : '● Stopped'}
                 </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Symbol: {normalizedPageSymbol}
+                </p>
               </div>
               <div
                 className={`h-3 w-3 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
@@ -246,11 +322,11 @@ export default function BotControlPanel() {
                     <option
                       key={acc.account_id}
                       value={acc.account_id}
-                      disabled={!acc.broker_linked}
+                      disabled={!acc.broker_linked || !acc.broker_account}
                     >
                       {acc.name}
                       {acc.broker_account ? ` · ${acc.broker_account.account_id}` : ''}
-                      {!acc.broker_linked ? ' · Link broker first' : ''}
+                      {!acc.broker_linked || !acc.broker_account ? ' · Link broker first' : ''}
                     </option>
                   ))}
                 </select>
@@ -314,6 +390,66 @@ export default function BotControlPanel() {
           )}
         </div>
       </div>
+      {isCreateModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-zinc-900">
+            <h2 className="text-xl font-bold text-black dark:text-white">Create Bot</h2>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Account: {selectedAccount?.name ?? selectedAccountId}
+            </p>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Symbol auto-assigned from page: {normalizedPageSymbol}
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Symbol
+                </label>
+                <input
+                  type="text"
+                  value={createSymbol}
+                  readOnly
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Strategy Trade Type
+                </label>
+                <select
+                  value={createStrategyTradeType}
+                  onChange={(event) => setCreateStrategyTradeType(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                >
+                  <option value="momentum_breakout">momentum_breakout</option>
+                  <option value="mean_reversion">mean_reversion</option>
+                  <option value="trend_following">trend_following</option>
+                  <option value="opening_range_breakout">opening_range_breakout</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmCreateBot()}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Create And Start
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
