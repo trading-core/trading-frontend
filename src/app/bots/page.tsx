@@ -59,6 +59,17 @@ const formatBrokerType = (brokerType?: string) => {
     .join(' ');
 };
 
+const formatStrategyTradeType = (strategyTradeType?: string) => {
+  if (!strategyTradeType) {
+    return 'n/a';
+  }
+  return strategyTradeType
+    .split(/[-_]/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
 const getErrorMessage = async (response: Response) => {
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
@@ -88,6 +99,7 @@ export default function MyBotsPage() {
   const [createBotAccount, setCreateBotAccount] = useState<TradingAccount | null>(null);
   const [createBotSymbol, setCreateBotSymbol] = useState('AAPL');
   const [createBotStrategy, setCreateBotStrategy] = useState('momentum_breakout');
+  const [createBotAllocationPercent, setCreateBotAllocationPercent] = useState('10');
 
   useEffect(() => {
     const refreshSession = () => {
@@ -222,6 +234,7 @@ export default function MyBotsPage() {
     setCreateBotAccount(account);
     setCreateBotSymbol('AAPL');
     setCreateBotStrategy('momentum_breakout');
+    setCreateBotAllocationPercent('10');
   };
 
   const handleConfirmCreateBot = async () => {
@@ -230,8 +243,13 @@ export default function MyBotsPage() {
     }
     const symbol = createBotSymbol.trim().toUpperCase();
     const strategyTradeType = createBotStrategy.trim();
+    const allocationPercent = Number.parseFloat(createBotAllocationPercent);
     if (!symbol || !strategyTradeType) {
       setBotWarning('Symbol and strategy trade type are required');
+      return;
+    }
+    if (!Number.isFinite(allocationPercent) || allocationPercent <= 0 || allocationPercent > 80) {
+      setBotWarning('Allocation percent must be greater than 0 and less than or equal to 80');
       return;
     }
 
@@ -244,6 +262,7 @@ export default function MyBotsPage() {
           account_id: account.account_id,
           symbol,
           strategy_trade_type: strategyTradeType,
+          allocation_percent: allocationPercent,
         });
         await refreshBots();
       });
@@ -719,7 +738,13 @@ export default function MyBotsPage() {
                               <div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">Strategy</p>
                                 <p className="font-semibold text-black dark:text-white">
-                                  {bot.strategy_trade_type || 'n/a'}
+                                  {formatStrategyTradeType(bot.strategy_trade_type)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Allocation</p>
+                                <p className="font-semibold text-black dark:text-white">
+                                  {bot.allocation_percent.toFixed(1)}%
                                 </p>
                               </div>
                               <div>
@@ -807,11 +832,30 @@ export default function MyBotsPage() {
                   onChange={(event) => setCreateBotStrategy(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 >
-                  <option value="momentum_breakout">momentum_breakout</option>
-                  <option value="mean_reversion">mean_reversion</option>
-                  <option value="trend_following">trend_following</option>
-                  <option value="opening_range_breakout">opening_range_breakout</option>
+                  <option value="momentum_breakout">{formatStrategyTradeType('momentum_breakout')}</option>
+                  <option value="mean_reversion">{formatStrategyTradeType('mean_reversion')}</option>
+                  <option value="trend_following">{formatStrategyTradeType('trend_following')}</option>
+                  <option value="opening_range_breakout">{formatStrategyTradeType('opening_range_breakout')}</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Allocation Percent
+                </label>
+                <input
+                  type="number"
+                  min="0.1"
+                  max="80"
+                  step="0.1"
+                  value={createBotAllocationPercent}
+                  onChange={(event) => setCreateBotAllocationPercent(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                  placeholder="10"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Active bots on the same account cannot exceed 80% combined allocation.
+                </p>
               </div>
             </div>
 

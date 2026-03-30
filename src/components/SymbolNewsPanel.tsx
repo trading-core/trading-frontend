@@ -99,8 +99,6 @@ export default function SymbolNewsPanel({
               <a
                 key={article.id}
                 href={article.url}
-                target="_blank"
-                rel="noreferrer"
                 className="block rounded-xl border border-gray-200 p-4 transition hover:border-sky-300 hover:bg-sky-50/40 dark:border-gray-800 dark:hover:border-sky-800 dark:hover:bg-zinc-800"
               >
                 <p className="mb-2 text-sm font-semibold text-black dark:text-white">

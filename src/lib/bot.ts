@@ -10,6 +10,7 @@ export interface TradingBot {
   broker_type?: string;
   symbol: string;
   strategy_trade_type: string;
+  allocation_percent: number;
   name?: string;
   status: BotStatus;
   created_at: string;
@@ -19,6 +20,7 @@ export interface CreateBotInput {
   account_id: string;
   symbol: string;
   strategy_trade_type: string;
+  allocation_percent: number;
 }
 
 const getErrorMessage = async (response: Response) => {

@@ -273,8 +273,6 @@ export default function StockNews({ limit = 10 }: StockNewsProps) {
                       <div className="flex-1">
                         <a
                           href={article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="text-lg font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition"
                         >
                           {article.headline}

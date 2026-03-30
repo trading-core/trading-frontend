@@ -22,6 +22,19 @@ interface BotControlPanelProps {
   symbol: string;
 }
 
+const DEFAULT_BOT_ALLOCATION_PERCENT = 10;
+
+const formatStrategyTradeType = (strategyTradeType?: string) => {
+  if (!strategyTradeType) {
+    return 'n/a';
+  }
+  return strategyTradeType
+    .split(/[-_]/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
 export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const normalizedPageSymbol = symbol.trim().toUpperCase();
   const [isLoading, setIsLoading] = useState(false);
@@ -200,6 +213,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
         account_id: selectedAccountId,
         symbol,
         strategy_trade_type: strategyTradeType,
+        allocation_percent: DEFAULT_BOT_ALLOCATION_PERCENT,
       });
       await updateBotStatus(authorization, newBot.id, 'running');
       setBots(await listBots(authorization));
@@ -423,10 +437,10 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
                   onChange={(event) => setCreateStrategyTradeType(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 >
-                  <option value="momentum_breakout">momentum_breakout</option>
-                  <option value="mean_reversion">mean_reversion</option>
-                  <option value="trend_following">trend_following</option>
-                  <option value="opening_range_breakout">opening_range_breakout</option>
+                  <option value="momentum_breakout">{formatStrategyTradeType('momentum_breakout')}</option>
+                  <option value="mean_reversion">{formatStrategyTradeType('mean_reversion')}</option>
+                  <option value="trend_following">{formatStrategyTradeType('trend_following')}</option>
+                  <option value="opening_range_breakout">{formatStrategyTradeType('opening_range_breakout')}</option>
                 </select>
               </div>
             </div>
