@@ -10,10 +10,11 @@ interface AccountDashboardProps {
   session: AuthSession;
 }
 
-type SupportedBroker = 'tastytrade';
+type SupportedBroker = 'tastytrade' | 'tastytrade_sandbox';
 
 const SUPPORTED_BROKERS: Array<{ value: SupportedBroker; label: string }> = [
   { value: 'tastytrade', label: 'Tastytrade' },
+  { value: 'tastytrade_sandbox', label: 'Tastytrade (Sandbox)' },
 ];
 
 const PENDING_BROKER_SELECTION_STORAGE_KEY = 'pending-broker-selection';
