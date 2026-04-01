@@ -44,7 +44,7 @@ export default function TradingViewCompactChartWidget({
         interval: 'D',
         locale: 'en',
         save_image: false,
-        style: '1',
+        style: '3',
         symbol: symbol.toUpperCase(),
         theme: 'dark',
         timezone: 'Etc/UTC',
