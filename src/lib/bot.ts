@@ -2,6 +2,21 @@ import { BOT_SERVICE_BASE_URL, apiUrl } from './api';
 
 export type BotStatus = 'running' | 'stopped';
 
+export type StrategyTradeType =
+  | 'trend_trading'
+  | 'swing_trading'
+  | 'scalping'
+  | 'breakout_trading';
+
+export const STRATEGY_TRADE_TYPES: StrategyTradeType[] = [
+  'trend_trading',
+  'swing_trading',
+  'scalping',
+  'breakout_trading',
+];
+
+export const ENABLED_STRATEGY_TRADE_TYPES: StrategyTradeType[] = ['scalping'];
+
 export interface TradingBot {
   id: string;
   user_id: string;
@@ -9,7 +24,7 @@ export interface TradingBot {
   broker_account_id?: string;
   broker_type?: string;
   symbol: string;
-  strategy_trade_type: string;
+  strategy_trade_type: StrategyTradeType;
   allocation_percent: number;
   name?: string;
   status: BotStatus;
@@ -19,7 +34,7 @@ export interface TradingBot {
 export interface CreateBotInput {
   account_id: string;
   symbol: string;
-  strategy_trade_type: string;
+  strategy_trade_type: StrategyTradeType;
   allocation_percent: number;
 }
 

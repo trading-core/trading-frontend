@@ -6,7 +6,10 @@ import { getAuthorizationHeader } from '@/lib/authSession';
 import { type TradingAccount } from '@/lib/account';
 import {
   createBot,
+  ENABLED_STRATEGY_TRADE_TYPES,
   listBots,
+  STRATEGY_TRADE_TYPES,
+  type StrategyTradeType,
   type TradingBot,
   updateBotStatus,
 } from '@/lib/bot';
@@ -40,7 +43,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createSymbol, setCreateSymbol] = useState(normalizedPageSymbol);
-  const [createStrategyTradeType, setCreateStrategyTradeType] = useState('momentum_breakout');
+  const [createStrategyTradeType, setCreateStrategyTradeType] = useState<StrategyTradeType>('scalping');
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [bots, setBots] = useState<TradingBot[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -161,7 +164,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       let botID = activeBot?.id;
       if (!botID) {
         setCreateSymbol(normalizedPageSymbol);
-        setCreateStrategyTradeType('momentum_breakout');
+        setCreateStrategyTradeType('scalping');
         setIsCreateModalOpen(true);
         return;
       }
@@ -201,7 +204,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       return;
     }
     const symbol = createSymbol.trim().toUpperCase();
-    const strategyTradeType = createStrategyTradeType.trim();
+    const strategyTradeType = createStrategyTradeType;
     if (!symbol || !strategyTradeType) {
       addLog('Symbol and strategy trade type are required', 'error');
       return;
@@ -434,13 +437,17 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
                 </label>
                 <select
                   value={createStrategyTradeType}
-                  onChange={(event) => setCreateStrategyTradeType(event.target.value)}
+                  onChange={(event) => setCreateStrategyTradeType(event.target.value as StrategyTradeType)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 >
-                  <option value="momentum_breakout">{formatStrategyTradeType('momentum_breakout')}</option>
-                  <option value="mean_reversion">{formatStrategyTradeType('mean_reversion')}</option>
-                  <option value="trend_following">{formatStrategyTradeType('trend_following')}</option>
-                  <option value="opening_range_breakout">{formatStrategyTradeType('opening_range_breakout')}</option>
+                  {STRATEGY_TRADE_TYPES.map((strategyType) => {
+                    const enabled = ENABLED_STRATEGY_TRADE_TYPES.includes(strategyType);
+                    return (
+                    <option key={strategyType} value={strategyType} disabled={!enabled}>
+                      {formatStrategyTradeType(strategyType)}{enabled ? '' : ' (Coming soon)'}
+                    </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>

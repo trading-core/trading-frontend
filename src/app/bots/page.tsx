@@ -13,7 +13,10 @@ import { type BalanceInfo, type TradingAccount } from '@/lib/account';
 import {
   createBot,
   deleteBot,
+  ENABLED_STRATEGY_TRADE_TYPES,
   listBots,
+  STRATEGY_TRADE_TYPES,
+  type StrategyTradeType,
   type TradingBot,
   updateBotStatus,
 } from '@/lib/bot';
@@ -98,7 +101,7 @@ export default function MyBotsPage() {
   const [botActionByAccountID, setBotActionByAccountID] = useState<Record<string, boolean>>({});
   const [createBotAccount, setCreateBotAccount] = useState<TradingAccount | null>(null);
   const [createBotSymbol, setCreateBotSymbol] = useState('AAPL');
-  const [createBotStrategy, setCreateBotStrategy] = useState('momentum_breakout');
+  const [createBotStrategy, setCreateBotStrategy] = useState<StrategyTradeType>('scalping');
   const [createBotAllocationPercent, setCreateBotAllocationPercent] = useState('10');
 
   useEffect(() => {
@@ -233,7 +236,7 @@ export default function MyBotsPage() {
   const handleCreateBot = (account: TradingAccount) => {
     setCreateBotAccount(account);
     setCreateBotSymbol('AAPL');
-    setCreateBotStrategy('momentum_breakout');
+    setCreateBotStrategy('scalping');
     setCreateBotAllocationPercent('10');
   };
 
@@ -242,7 +245,7 @@ export default function MyBotsPage() {
       return;
     }
     const symbol = createBotSymbol.trim().toUpperCase();
-    const strategyTradeType = createBotStrategy.trim();
+    const strategyTradeType = createBotStrategy;
     const allocationPercent = Number.parseFloat(createBotAllocationPercent);
     if (!symbol || !strategyTradeType) {
       setBotWarning('Symbol and strategy trade type are required');
@@ -829,13 +832,17 @@ export default function MyBotsPage() {
                 </label>
                 <select
                   value={createBotStrategy}
-                  onChange={(event) => setCreateBotStrategy(event.target.value)}
+                  onChange={(event) => setCreateBotStrategy(event.target.value as StrategyTradeType)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 >
-                  <option value="momentum_breakout">{formatStrategyTradeType('momentum_breakout')}</option>
-                  <option value="mean_reversion">{formatStrategyTradeType('mean_reversion')}</option>
-                  <option value="trend_following">{formatStrategyTradeType('trend_following')}</option>
-                  <option value="opening_range_breakout">{formatStrategyTradeType('opening_range_breakout')}</option>
+                  {STRATEGY_TRADE_TYPES.map((strategyType) => {
+                    const enabled = ENABLED_STRATEGY_TRADE_TYPES.includes(strategyType);
+                    return (
+                    <option key={strategyType} value={strategyType} disabled={!enabled}>
+                      {formatStrategyTradeType(strategyType)}{enabled ? '' : ' (Coming soon)'}
+                    </option>
+                    );
+                  })}
                 </select>
               </div>
 
