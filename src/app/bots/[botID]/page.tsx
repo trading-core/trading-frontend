@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 
 import BotDecisionDashboard from '@/components/BotDecisionDashboard';
 import {
@@ -38,24 +38,12 @@ type BotDetailPageProps = {
 export default function BotDetailPage({ params }: BotDetailPageProps) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [botID, setBotID] = useState('');
+  const { botID } = use(params);
   const [bot, setBot] = useState<TradingBot | null>(null);
   const [decisionEvents, setDecisionEvents] = useState<BotDecisionEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void params.then((value) => {
-      if (!cancelled) {
-        setBotID(value.botID);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [params]);
 
   useEffect(() => {
     const refreshSession = () => {

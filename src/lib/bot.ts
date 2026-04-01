@@ -50,6 +50,22 @@ export interface BotDecisionEvent {
   price: number;
 }
 
+type RawBotDecisionRecordedEvent = {
+  bot_id?: unknown;
+  symbol?: unknown;
+  strategy_type?: unknown;
+  action?: unknown;
+  reason?: unknown;
+  quantity?: unknown;
+  price?: unknown;
+};
+
+type RawBotDecisionFrame = {
+  type?: unknown;
+  timestamp_millis?: unknown;
+  bot_decision_recorded_event?: RawBotDecisionRecordedEvent;
+};
+
 type StreamBotDecisionEventReady = {
   bot_id: string;
   cursor: number;
@@ -147,6 +163,73 @@ const requestBotService = async (
   throw new Error(message);
 };
 
+const normalizeDecisionAction = (value: unknown): BotDecisionEvent['action'] => {
+  if (value === 'buy' || value === 'sell' || value === 'none') {
+    return value;
+  }
+  return 'none';
+};
+
+const numberOrZero = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : 0;
+
+const stringOrEmpty = (value: unknown) =>
+  typeof value === 'string' ? value : '';
+
+const mapRawDecisionPayload = (
+  eventID: number | null,
+  payload: unknown
+): BotDecisionEvent | null => {
+  // Support both the current backend frame format and a flat event payload.
+  const candidate = payload as Partial<BotDecisionEvent>;
+  if (
+    typeof candidate?.bot_id === 'string' &&
+    typeof candidate?.symbol === 'string' &&
+    typeof candidate?.strategy_type === 'string'
+  ) {
+    return {
+      sequence:
+        (typeof candidate.sequence === 'number' && Number.isFinite(candidate.sequence)
+          ? candidate.sequence
+          : eventID) ?? numberOrZero(candidate.timestamp_millis),
+      timestamp_millis: numberOrZero(candidate.timestamp_millis),
+      bot_id: candidate.bot_id,
+      symbol: candidate.symbol,
+      strategy_type: candidate.strategy_type as StrategyTradeType,
+      action: normalizeDecisionAction(candidate.action),
+      reason: stringOrEmpty(candidate.reason),
+      quantity: numberOrZero(candidate.quantity),
+      price: numberOrZero(candidate.price),
+    };
+  }
+
+  const frame = payload as RawBotDecisionFrame;
+  const decision = frame.bot_decision_recorded_event;
+  if (!decision) {
+    return null;
+  }
+
+  const botID = stringOrEmpty(decision.bot_id);
+  const symbol = stringOrEmpty(decision.symbol);
+  const strategyType = stringOrEmpty(decision.strategy_type) as StrategyTradeType;
+  if (!botID || !symbol || !strategyType) {
+    return null;
+  }
+
+  const timestampMillis = numberOrZero(frame.timestamp_millis);
+  return {
+    sequence: eventID ?? timestampMillis,
+    timestamp_millis: timestampMillis,
+    bot_id: botID,
+    symbol,
+    strategy_type: strategyType,
+    action: normalizeDecisionAction(decision.action),
+    reason: stringOrEmpty(decision.reason),
+    quantity: numberOrZero(decision.quantity),
+    price: numberOrZero(decision.price),
+  };
+};
+
 export const listBots = async (authorization: string): Promise<TradingBot[]> => {
   const response = await requestBotService('/bots/v1/bots', {
     method: 'GET',
@@ -192,6 +275,7 @@ export const streamBotDecisionEvents = async (
   const parseEventBlock = (block: string) => {
     const lines = block.split(/\r?\n/);
     let eventName = 'message';
+    let eventID: number | null = null;
     const dataLines: string[] = [];
 
     for (const line of lines) {
@@ -204,6 +288,13 @@ export const streamBotDecisionEvents = async (
       }
       if (line.startsWith('data:')) {
         dataLines.push(line.slice(5).trimStart());
+        continue;
+      }
+      if (line.startsWith('id:')) {
+        const parsedID = Number(line.slice(3).trim());
+        if (Number.isFinite(parsedID)) {
+          eventID = parsedID;
+        }
       }
     }
 
@@ -218,7 +309,12 @@ export const streamBotDecisionEvents = async (
         return;
       }
       if (eventName === 'decision') {
-        input.onDecision(JSON.parse(dataText) as BotDecisionEvent);
+        const event = mapRawDecisionPayload(eventID, JSON.parse(dataText));
+        if (!event) {
+          input.onError?.('Unexpected bot decision payload shape');
+          return;
+        }
+        input.onDecision(event);
         return;
       }
       if (eventName === 'error') {

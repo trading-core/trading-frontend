@@ -68,6 +68,19 @@ const dateWindowFromRange = (range: '1M' | '3M' | '6M' | '1Y') => {
   };
 };
 
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const toStrictlyAscendingLineData = (points: LineData[]): LineData[] => {
+  const byTime = new Map<number, number>();
+  for (const point of points) {
+    byTime.set(Number(point.time), point.value);
+  }
+  return [...byTime.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([time, value]) => ({ time: time as Time, value }));
+};
+
 export default function LightweightBotChart({
   symbol,
   decisionEvents,
@@ -161,13 +174,14 @@ export default function LightweightBotChart({
         }
 
         const payload = (await response.json()) as AlpacaBarsPayload;
-        const barData: LineData[] = (payload.bars ?? [])
+        const barData = toStrictlyAscendingLineData(
+          (payload.bars ?? [])
           .filter((bar) => typeof bar.time === 'string' && Number.isFinite(bar.close))
           .map((bar) => ({
             time: toChartTime(new Date(bar.time).getTime()),
             value: bar.close,
           }))
-          .sort((a, b) => Number(a.time) - Number(b.time));
+        );
 
         if (barData.length > 0) {
           lineSeries.setData(barData);
@@ -179,12 +193,15 @@ export default function LightweightBotChart({
         // Fall back to decision-only line when Alpaca data is unavailable.
       }
 
-      const fallback = [...decisionEvents]
+      const fallback = toStrictlyAscendingLineData(
+        [...decisionEvents]
         .sort((a, b) => a.timestamp_millis - b.timestamp_millis)
-        .map((event) => ({
-          time: toChartTime(event.timestamp_millis),
-          value: event.price,
-        }));
+          .filter((event) => isFiniteNumber(event.price))
+          .map((event) => ({
+            time: toChartTime(event.timestamp_millis),
+            value: event.price,
+          }))
+      );
       lineSeries.setData(fallback);
       setBarsMode('fallback');
       chart.timeScale().fitContent();
@@ -204,12 +221,15 @@ export default function LightweightBotChart({
       return;
     }
 
-    const fallback = [...decisionEvents]
+    const fallback = toStrictlyAscendingLineData(
+      [...decisionEvents]
       .sort((a, b) => a.timestamp_millis - b.timestamp_millis)
+      .filter((event) => isFiniteNumber(event.price))
       .map((event) => ({
         time: toChartTime(event.timestamp_millis),
         value: event.price,
-      }));
+      }))
+    );
     lineSeries.setData(fallback);
     chart.timeScale().fitContent();
   }, [barsMode, decisionEvents]);
@@ -224,13 +244,18 @@ export default function LightweightBotChart({
     const sorted = [...decisionEvents].sort((a, b) => a.timestamp_millis - b.timestamp_millis);
 
     const markers: SeriesMarker<Time>[] = sorted
-      .filter((event) => event.action === 'buy' || event.action === 'sell')
+        .filter(
+          (event) =>
+            (event.action === 'buy' || event.action === 'sell') &&
+            isFiniteNumber(event.price) &&
+            isFiniteNumber(event.quantity)
+        )
       .map((event) => ({
         time: toChartTime(event.timestamp_millis),
         position: event.action === 'buy' ? 'belowBar' : 'aboveBar',
         color: event.action === 'buy' ? '#22C55E' : '#EF4444',
         shape: event.action === 'buy' ? 'arrowUp' : 'arrowDown',
-        text: `${event.action.toUpperCase()} ${event.quantity.toFixed(2)} @ ${event.price.toFixed(2)}`,
+          text: `${event.action.toUpperCase()} ${isFiniteNumber(event.quantity) ? event.quantity.toFixed(2) : 'N/A'} @ ${isFiniteNumber(event.price) ? event.price.toFixed(2) : 'N/A'}`,
       }));
     createSeriesMarkers(lineSeries, markers);
   }, [decisionEvents]);

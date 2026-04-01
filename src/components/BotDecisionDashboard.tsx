@@ -14,6 +14,15 @@ type ChartTimeframe = (typeof CHART_TIMEFRAMES)[number];
 const CHART_RANGES = ['1M', '3M', '6M', '1Y'] as const;
 type ChartRange = (typeof CHART_RANGES)[number];
 
+type DecisionAction = BotDecisionEvent['action'];
+
+const normalizeAction = (action: unknown): DecisionAction => {
+  if (action === 'buy' || action === 'sell' || action === 'none') {
+    return action;
+  }
+  return 'none';
+};
+
 const actionToneByType: Record<BotDecisionEvent['action'], string> = {
   none: 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
   buy: 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300',
@@ -37,12 +46,19 @@ const actionLabel = (action: BotDecisionEvent['action']) => {
   }
 };
 
+const formatMaybeNumber = (value: unknown, digits: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+  return value.toFixed(digits);
+};
+
 export default function BotDecisionDashboard({ bot, decisionEvents }: BotDecisionDashboardProps) {
   const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>('1Day');
   const [chartRange, setChartRange] = useState<ChartRange>('1Y');
-  const actionableEvents = decisionEvents.filter((event) => event.action !== 'none');
-  const buyCount = actionableEvents.filter((event) => event.action === 'buy').length;
-  const sellCount = actionableEvents.filter((event) => event.action === 'sell').length;
+  const actionableEvents = decisionEvents.filter((event) => normalizeAction(event.action) !== 'none');
+  const buyCount = actionableEvents.filter((event) => normalizeAction(event.action) === 'buy').length;
+  const sellCount = actionableEvents.filter((event) => normalizeAction(event.action) === 'sell').length;
   const lastEvent = decisionEvents[0] ?? null;
 
   return (
@@ -98,7 +114,7 @@ export default function BotDecisionDashboard({ bot, decisionEvents }: BotDecisio
               { label: 'Sells', value: sellCount.toString() },
               {
                 label: 'Last Action',
-                value: lastEvent ? actionLabel(lastEvent.action) : 'None',
+              value: lastEvent ? actionLabel(normalizeAction(lastEvent.action)) : 'None',
               },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-black">
@@ -145,20 +161,22 @@ export default function BotDecisionDashboard({ bot, decisionEvents }: BotDecisio
             No actionable decisions have been recorded yet. Once the bot issues buy or sell actions, they will show up here.
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto space-y-3 min-h-0 pr-1">
-            {decisionEvents.map((event) => (
+          <div className="max-h-[620px] overflow-y-auto space-y-3 pr-1">
+            {decisionEvents.map((event) => {
+              const action = normalizeAction(event.action);
+              return (
               <div key={event.sequence} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 dark:border-gray-700 dark:bg-black">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {actionLabel(event.action)} at ${event.price.toFixed(2)}
+                  {actionLabel(action)} at ${formatMaybeNumber(event.price, 2)}
                     </p>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       {new Date(event.timestamp_millis).toLocaleString()}
                     </p>
                   </div>
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${actionToneByType[event.action]}`}>
-                    {event.action.toUpperCase()}
+                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${actionToneByType[action]}`}>
+                {action.toUpperCase()}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -168,11 +186,12 @@ export default function BotDecisionDashboard({ bot, decisionEvents }: BotDecisio
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-500">Quantity</p>
-                    <p className="mt-1 text-gray-800 dark:text-gray-200">{event.quantity.toFixed(2)}</p>
+                <p className="mt-1 text-gray-800 dark:text-gray-200">{formatMaybeNumber(event.quantity, 2)}</p>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
