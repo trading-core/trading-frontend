@@ -324,7 +324,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
-                  disabled={isRunning || isLoading}
+                  disabled={isLoading}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 >
                   {linkedAccounts.length === 0 ? (
