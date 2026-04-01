@@ -4,10 +4,12 @@ import { useEffect, useRef } from 'react';
 
 interface TradingViewCompactChartWidgetProps {
   symbol: string;
+  heightClassName?: string;
 }
 
 export default function TradingViewCompactChartWidget({
   symbol,
+  heightClassName = 'h-[180px]',
 }: TradingViewCompactChartWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -63,7 +65,7 @@ export default function TradingViewCompactChartWidget({
   }, [symbol]);
 
   return (
-    <div className="tradingview-widget-container h-[180px] w-full overflow-hidden rounded-xl">
+    <div className={`tradingview-widget-container ${heightClassName} w-full overflow-hidden rounded-xl`}>
       <div
         className="tradingview-widget-container__widget h-full w-full"
         ref={containerRef}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
 import { getAuthorizationHeader } from '@/lib/authSession';
 import { type TradingAccount } from '@/lib/account';
@@ -13,13 +14,6 @@ import {
   type TradingBot,
   updateBotStatus,
 } from '@/lib/bot';
-
-interface ActivityLog {
-  id: string;
-  timestamp: string;
-  action: string;
-  status: 'success' | 'error' | 'info';
-}
 
 interface BotControlPanelProps {
   symbol: string;
@@ -48,17 +42,6 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const [bots, setBots] = useState<TradingBot[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loadingAccounts, setLoadingAccounts] = useState(true);
-  const [activityLog, setActivityLog] = useState<ActivityLog[]>([
-    {
-      id: '1',
-      timestamp: new Date().toLocaleTimeString(),
-      action: 'Bot controller initialized',
-      status: 'info',
-    },
-  ]);
-  const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const linkedAccounts = accounts.filter((account) => account.broker_linked && !!account.broker_account);
   const activeBot = selectedAccountId
     ? bots.find(
@@ -106,58 +89,11 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
     setCreateSymbol(normalizedPageSymbol);
   }, [normalizedPageSymbol]);
 
-  const addLog = (action: string, status: 'success' | 'error' | 'info') => {
-    const newEntry: ActivityLog = {
-      id: Date.now().toString(),
-      timestamp: new Date().toLocaleTimeString(),
-      action,
-      status,
-    };
-    setActivityLog((prev) => [newEntry, ...prev.slice(0, 9)]);
-    setCurrentActivityIndex(0); // Show the most recent activity
-  };
-
-  useEffect(() => {
-    const handleScroll = (e: WheelEvent) => {
-      if (!scrollContainerRef.current) return;
-
-      const container = scrollContainerRef.current;
-      const isScrollingInContainer =
-        e.clientY >= container.getBoundingClientRect().top &&
-        e.clientY <= container.getBoundingClientRect().bottom;
-
-      if (!isScrollingInContainer) return;
-
-      e.preventDefault();
-
-      const scrollDelta = e.deltaY;
-
-      if (scrollDelta > 0) {
-        // Scrolling down - swipe left (show next/older activity)
-        setSlideDirection('left');
-        setCurrentActivityIndex((prev) =>
-          prev < activityLog.length - 1 ? prev + 1 : prev
-        );
-      } else {
-        // Scrolling up - swipe right (show previous/newer activity)
-        setSlideDirection('right');
-        setCurrentActivityIndex((prev) => (prev > 0 ? prev - 1 : prev));
-      }
-    };
-
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleScroll, { passive: false });
-      return () => container.removeEventListener('wheel', handleScroll);
-    }
-  }, [activityLog.length]);
-
   const handleStart = async () => {
     setIsLoading(true);
     try {
       const authorization = getAuthorizationHeader();
       if (!authorization || !selectedAccountId) {
-        addLog('Missing session or account selection', 'error');
         return;
       }
 
@@ -170,10 +106,8 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       }
       await updateBotStatus(authorization, botID, 'running');
       setBots(await listBots(authorization));
-      const account = accounts.find((a) => a.account_id === selectedAccountId);
-      addLog(`Bot started on ${account?.name ?? selectedAccountId}`, 'success');
     } catch {
-      addLog('Failed to start bot', 'error');
+      // Surface errors through existing disabled/loading states in this compact panel.
     } finally {
       setIsLoading(false);
     }
@@ -184,14 +118,12 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
     try {
       const authorization = getAuthorizationHeader();
       if (!authorization || !activeBot) {
-        addLog('No running bot found for this account', 'error');
         return;
       }
       await updateBotStatus(authorization, activeBot.id, 'stopped');
       setBots(await listBots(authorization));
-      addLog('Bot stopped', 'success');
     } catch {
-      addLog('Failed to stop bot', 'error');
+      // Surface errors through existing disabled/loading states in this compact panel.
     } finally {
       setIsLoading(false);
     }
@@ -200,13 +132,11 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const handleConfirmCreateBot = async () => {
     const authorization = getAuthorizationHeader();
     if (!authorization || !selectedAccountId) {
-      addLog('Missing session or account selection', 'error');
       return;
     }
     const symbol = createSymbol.trim().toUpperCase();
     const strategyTradeType = createStrategyTradeType;
     if (!symbol || !strategyTradeType) {
-      addLog('Symbol and strategy trade type are required', 'error');
       return;
     }
 
@@ -220,10 +150,9 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       });
       await updateBotStatus(authorization, newBot.id, 'running');
       setBots(await listBots(authorization));
-      addLog(`Bot started on ${selectedAccount?.name ?? selectedAccountId}`, 'success');
       setIsCreateModalOpen(false);
     } catch {
-      addLog('Failed to create and start bot', 'error');
+      // Surface errors through existing disabled/loading states in this compact panel.
     } finally {
       setIsLoading(false);
     }
@@ -239,50 +168,8 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
     return 'text-red-700 dark:text-red-400';
   };
 
-  const getLogStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'text-green-600 dark:text-green-400';
-      case 'error':
-        return 'text-red-600 dark:text-red-400';
-      default:
-        return 'text-blue-600 dark:text-blue-400';
-    }
-  };
-
   return (
     <>
-      <style>{`
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(-100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .slide-left {
-          animation: slideInLeft 0.4s ease-out;
-        }
-
-        .slide-right {
-          animation: slideInRight 0.4s ease-out;
-        }
-      `}</style>
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -357,54 +244,24 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
           </div>
 
           <div className="flex gap-3">
-            <button
-              onClick={handleStart}
-              disabled={isRunning || isLoading || !selectedAccountId}
-              className="flex-1 rounded-lg bg-green-600 px-4 py-2 font-semibold text-white transition duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-            >
-              {isLoading && !isRunning ? 'Starting...' : 'Start Bot'}
-            </button>
-            <button
-              onClick={handleStop}
-              disabled={!isRunning || isLoading}
-              className="flex-1 rounded-lg bg-red-600 px-4 py-2 font-semibold text-white transition duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-            >
-              {isLoading && isRunning ? 'Stopping...' : 'Stop Bot'}
-            </button>
-          </div>
-        </div>
-
-        {/* Activity Log Section */}
-        <div ref={scrollContainerRef} className="cursor-ns-resize px-6 py-4">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-            Recent Activity
-          </h3>
-          <div className="relative flex min-h-[80px] items-center justify-center overflow-hidden">
-            {activityLog.length > 0 ? (
-              <div
-                key={activityLog[currentActivityIndex]?.id}
-                className={`w-full text-center ${slideDirection === 'left' ? 'slide-left' : 'slide-right'}`}
+            {activeBot ? (
+              <Link
+                href={`/bots/${encodeURIComponent(activeBot.id)}`}
+                className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition duration-200 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-zinc-800"
               >
-                <p className="mb-2 text-xs text-gray-500 dark:text-gray-500">
-                  {activityLog[currentActivityIndex]?.timestamp}
-                </p>
-                <p className={`text-sm font-medium ${getLogStatusColor(activityLog[currentActivityIndex]?.status)}`}>
-                  {activityLog[currentActivityIndex]?.action}
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500 dark:text-gray-400">No activity yet</p>
-            )}
+                Open Bot Page
+              </Link>
+            ) : null}
+            <button
+              onClick={isRunning ? handleStop : handleStart}
+              disabled={isLoading || !selectedAccountId}
+              className={`flex-1 rounded-lg px-4 py-2 font-semibold text-white transition duration-200 disabled:cursor-not-allowed disabled:bg-gray-400 ${
+                isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isLoading ? (isRunning ? 'Stopping...' : 'Starting...') : isRunning ? 'Stop Bot' : 'Start Bot'}
+            </button>
           </div>
-
-          {/* Navigation Indicators */}
-          {activityLog.length > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {currentActivityIndex + 1} / {activityLog.length}
-              </span>
-            </div>
-          )}
         </div>
       </div>
       {isCreateModalOpen ? (

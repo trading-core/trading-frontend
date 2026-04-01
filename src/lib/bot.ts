@@ -38,6 +38,31 @@ export interface CreateBotInput {
   allocation_percent: number;
 }
 
+export interface BotDecisionEvent {
+  sequence: number;
+  timestamp_millis: number;
+  bot_id: string;
+  symbol: string;
+  strategy_type: StrategyTradeType;
+  action: 'none' | 'buy' | 'sell';
+  reason: string;
+  quantity: number;
+  price: number;
+}
+
+type StreamBotDecisionEventReady = {
+  bot_id: string;
+  cursor: number;
+};
+
+type StreamBotDecisionEventsInput = {
+  cursor?: number;
+  signal?: AbortSignal;
+  onReady?: (ready: StreamBotDecisionEventReady) => void;
+  onDecision: (event: BotDecisionEvent) => void;
+  onError?: (message: string) => void;
+};
+
 const getErrorMessage = async (response: Response) => {
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
@@ -130,6 +155,93 @@ export const listBots = async (authorization: string): Promise<TradingBot[]> => 
   const body = await response.text();
   const payload = parseJSONBody<TradingBot[] | null>(body, 'listing bots');
   return Array.isArray(payload) ? payload : [];
+};
+
+export const getBot = async (authorization: string, botID: string): Promise<TradingBot> => {
+  const response = await requestBotService(`/bots/v1/bots/${botID}`, {
+    method: 'GET',
+    headers: withAuth(authorization),
+  });
+  const body = await response.text();
+  return parseJSONBody<TradingBot>(body, 'loading bot');
+};
+
+export const streamBotDecisionEvents = async (
+  authorization: string,
+  botID: string,
+  input: StreamBotDecisionEventsInput
+): Promise<void> => {
+  const query = typeof input.cursor === 'number' ? `?cursor=${encodeURIComponent(input.cursor)}` : '';
+  const response = await requestBotService(`/bots/v1/bots/${botID}/stream${query}`, {
+    method: 'GET',
+    headers: {
+      ...withAuth(authorization),
+      Accept: 'text/event-stream',
+    },
+    signal: input.signal,
+  });
+
+  if (!response.body) {
+    throw new Error('Bot stream is unavailable');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const parseEventBlock = (block: string) => {
+    const lines = block.split(/\r?\n/);
+    let eventName = 'message';
+    const dataLines: string[] = [];
+
+    for (const line of lines) {
+      if (!line || line.startsWith(':')) {
+        continue;
+      }
+      if (line.startsWith('event:')) {
+        eventName = line.slice(6).trim();
+        continue;
+      }
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+
+    if (dataLines.length === 0) {
+      return;
+    }
+
+    const dataText = dataLines.join('\n');
+    try {
+      if (eventName === 'ready') {
+        input.onReady?.(JSON.parse(dataText) as StreamBotDecisionEventReady);
+        return;
+      }
+      if (eventName === 'decision') {
+        input.onDecision(JSON.parse(dataText) as BotDecisionEvent);
+        return;
+      }
+      if (eventName === 'error') {
+        const payload = JSON.parse(dataText) as { message?: string };
+        input.onError?.(payload.message ?? 'Bot stream error');
+      }
+    } catch {
+      input.onError?.('Failed to parse bot stream event');
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() ?? '';
+    for (const block of blocks) {
+      parseEventBlock(block);
+    }
+  }
 };
 
 export const createBot = async (

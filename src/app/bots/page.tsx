@@ -737,6 +737,12 @@ export default function MyBotsPage() {
                                   {bot.symbol || bot.name || 'Unnamed Bot'}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">{bot.id}</p>
+                                <Link
+                                  href={`/bots/${encodeURIComponent(bot.id)}`}
+                                  className="mt-1 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                >
+                                  Open bot page
+                                </Link>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">Strategy</p>
@@ -759,6 +765,12 @@ export default function MyBotsPage() {
                             </div>
 
                             <div className="flex gap-2">
+                              <Link
+                                href={`/bots/${encodeURIComponent(bot.id)}`}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-zinc-800"
+                              >
+                                Open
+                              </Link>
                               {bot.status === 'running' ? (
                                 <button
                                   type="button"
