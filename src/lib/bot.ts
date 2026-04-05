@@ -10,13 +10,13 @@ export interface TradingBot {
   broker_type?: string;
   symbol: string;
   allocation_percent: number;
-  scalping_params?: ScalpingParams;
+  trading_params?: TradingParameters;
   name?: string;
   status: BotStatus;
   created_at: string;
 }
 
-export interface ScalpingParams {
+export interface TradingParameters {
   entry_mode?: string;
   take_profit_pct?: number;
   stop_loss_pct?: number;
@@ -39,7 +39,7 @@ export interface CreateBotInput {
   account_id: string;
   symbol: string;
   allocation_percent: number;
-  scalping_params?: ScalpingParams;
+  trading_params?: TradingParameters;
 }
 
 export interface BotDecisionEvent {

@@ -14,7 +14,7 @@ import {
   createBot,
   deleteBot,
   listBots,
-  type ScalpingParams,
+  type TradingParameters,
   type TradingBot,
   updateBotStatus,
 } from '@/lib/bot';
@@ -289,7 +289,7 @@ export default function MyBotsPage() {
       return Number.isFinite(v) ? v : undefined;
     };
 
-    const scalpingParams: ScalpingParams = {
+    const tradingParams: TradingParameters = {
       entry_mode: createBotEntryMode || undefined,
       take_profit_pct: pctFraction(createBotTakeProfitPct),
       stop_loss_pct: pctFraction(createBotStopLossPct),
@@ -317,7 +317,7 @@ export default function MyBotsPage() {
           account_id: account.account_id,
           symbol,
           allocation_percent: allocationPercent,
-          scalping_params: scalpingParams,
+          trading_params: tradingParams,
         });
         await refreshBots();
       });
