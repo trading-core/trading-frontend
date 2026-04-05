@@ -7,10 +7,7 @@ import { getAuthorizationHeader } from '@/lib/authSession';
 import { type TradingAccount } from '@/lib/account';
 import {
   createBot,
-  ENABLED_STRATEGY_TRADE_TYPES,
   listBots,
-  STRATEGY_TRADE_TYPES,
-  type StrategyTradeType,
   type TradingBot,
   updateBotStatus,
 } from '@/lib/bot';
@@ -21,23 +18,11 @@ interface BotControlPanelProps {
 
 const DEFAULT_BOT_ALLOCATION_PERCENT = 10;
 
-const formatStrategyTradeType = (strategyTradeType?: string) => {
-  if (!strategyTradeType) {
-    return 'n/a';
-  }
-  return strategyTradeType
-    .split(/[-_]/)
-    .filter((segment) => segment.length > 0)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-};
-
 export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const normalizedPageSymbol = symbol.trim().toUpperCase();
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createSymbol, setCreateSymbol] = useState(normalizedPageSymbol);
-  const [createStrategyTradeType, setCreateStrategyTradeType] = useState<StrategyTradeType>('scalping');
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [bots, setBots] = useState<TradingBot[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -100,7 +85,6 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       let botID = activeBot?.id;
       if (!botID) {
         setCreateSymbol(normalizedPageSymbol);
-        setCreateStrategyTradeType('scalping');
         setIsCreateModalOpen(true);
         return;
       }
@@ -135,8 +119,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       return;
     }
     const symbol = createSymbol.trim().toUpperCase();
-    const strategyTradeType = createStrategyTradeType;
-    if (!symbol || !strategyTradeType) {
+    if (!symbol) {
       return;
     }
 
@@ -145,7 +128,6 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
       const newBot = await createBot(authorization, {
         account_id: selectedAccountId,
         symbol,
-        strategy_trade_type: strategyTradeType,
         allocation_percent: DEFAULT_BOT_ALLOCATION_PERCENT,
       });
       await updateBotStatus(authorization, newBot.id, 'running');
@@ -288,25 +270,6 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                  Strategy Trade Type
-                </label>
-                <select
-                  value={createStrategyTradeType}
-                  onChange={(event) => setCreateStrategyTradeType(event.target.value as StrategyTradeType)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                >
-                  {STRATEGY_TRADE_TYPES.map((strategyType) => {
-                    const enabled = ENABLED_STRATEGY_TRADE_TYPES.includes(strategyType);
-                    return (
-                    <option key={strategyType} value={strategyType} disabled={!enabled}>
-                      {formatStrategyTradeType(strategyType)}{enabled ? '' : ' (Coming soon)'}
-                    </option>
-                    );
-                  })}
-                </select>
-              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">

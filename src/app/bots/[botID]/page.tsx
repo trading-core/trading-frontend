@@ -18,17 +18,6 @@ import {
   updateBotStatus,
 } from '@/lib/bot';
 
-const formatStrategyTradeType = (strategyTradeType?: string) => {
-  if (!strategyTradeType) {
-    return 'n/a';
-  }
-  return strategyTradeType
-    .split(/[-_]/)
-    .filter((segment) => segment.length > 0)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-};
-
 type BotDetailPageProps = {
   params: Promise<{
     botID: string;
@@ -234,7 +223,6 @@ export default function BotDetailPage({ params }: BotDetailPageProps) {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {[
-                  { label: 'Strategy', value: formatStrategyTradeType(bot.strategy_trade_type) },
                   { label: 'Allocation', value: `${bot.allocation_percent.toFixed(1)}%` },
                   { label: 'Account ID', value: bot.account_id },
                   { label: 'Broker Account ID', value: bot.broker_account_id || 'n/a' },

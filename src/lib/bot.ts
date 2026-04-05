@@ -2,21 +2,6 @@ import { BOT_SERVICE_BASE_URL, apiUrl } from './api';
 
 export type BotStatus = 'running' | 'stopped';
 
-export type StrategyTradeType =
-  | 'trend_trading'
-  | 'swing_trading'
-  | 'scalping'
-  | 'breakout_trading';
-
-export const STRATEGY_TRADE_TYPES: StrategyTradeType[] = [
-  'trend_trading',
-  'swing_trading',
-  'scalping',
-  'breakout_trading',
-];
-
-export const ENABLED_STRATEGY_TRADE_TYPES: StrategyTradeType[] = ['scalping'];
-
 export interface TradingBot {
   id: string;
   user_id: string;
@@ -24,18 +9,37 @@ export interface TradingBot {
   broker_account_id?: string;
   broker_type?: string;
   symbol: string;
-  strategy_trade_type: StrategyTradeType;
   allocation_percent: number;
+  scalping_params?: ScalpingParams;
   name?: string;
   status: BotStatus;
   created_at: string;
 }
 
+export interface ScalpingParams {
+  entry_mode?: string;
+  take_profit_pct?: number;
+  stop_loss_pct?: number;
+  session_start?: number;
+  session_end?: number;
+  min_rsi?: number;
+  require_macd_signal?: boolean;
+  require_bollinger_breakout?: boolean;
+  min_bollinger_width_pct?: number;
+  require_bollinger_squeeze?: boolean;
+  max_bollinger_width_pct?: number;
+  reentry_cooldown_minutes?: number;
+  use_volatility_tp?: boolean;
+  volatility_tp_multiplier?: number;
+  risk_per_trade_pct?: number;
+  breakout_lookback_bars?: number;
+}
+
 export interface CreateBotInput {
   account_id: string;
   symbol: string;
-  strategy_trade_type: StrategyTradeType;
   allocation_percent: number;
+  scalping_params?: ScalpingParams;
 }
 
 export interface BotDecisionEvent {
@@ -43,7 +47,6 @@ export interface BotDecisionEvent {
   timestamp_millis: number;
   bot_id: string;
   symbol: string;
-  strategy_type: StrategyTradeType;
   action: 'none' | 'buy' | 'sell';
   reason: string;
   quantity: number;
@@ -53,7 +56,6 @@ export interface BotDecisionEvent {
 type RawBotDecisionRecordedEvent = {
   bot_id?: unknown;
   symbol?: unknown;
-  strategy_type?: unknown;
   action?: unknown;
   reason?: unknown;
   quantity?: unknown;
@@ -184,8 +186,7 @@ const mapRawDecisionPayload = (
   const candidate = payload as Partial<BotDecisionEvent>;
   if (
     typeof candidate?.bot_id === 'string' &&
-    typeof candidate?.symbol === 'string' &&
-    typeof candidate?.strategy_type === 'string'
+    typeof candidate?.symbol === 'string'
   ) {
     return {
       sequence:
@@ -195,7 +196,6 @@ const mapRawDecisionPayload = (
       timestamp_millis: numberOrZero(candidate.timestamp_millis),
       bot_id: candidate.bot_id,
       symbol: candidate.symbol,
-      strategy_type: candidate.strategy_type as StrategyTradeType,
       action: normalizeDecisionAction(candidate.action),
       reason: stringOrEmpty(candidate.reason),
       quantity: numberOrZero(candidate.quantity),
@@ -211,8 +211,7 @@ const mapRawDecisionPayload = (
 
   const botID = stringOrEmpty(decision.bot_id);
   const symbol = stringOrEmpty(decision.symbol);
-  const strategyType = stringOrEmpty(decision.strategy_type) as StrategyTradeType;
-  if (!botID || !symbol || !strategyType) {
+  if (!botID || !symbol) {
     return null;
   }
 
@@ -222,7 +221,6 @@ const mapRawDecisionPayload = (
     timestamp_millis: timestampMillis,
     bot_id: botID,
     symbol,
-    strategy_type: strategyType,
     action: normalizeDecisionAction(decision.action),
     reason: stringOrEmpty(decision.reason),
     quantity: numberOrZero(decision.quantity),
