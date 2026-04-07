@@ -17,12 +17,15 @@ interface BotControlPanelProps {
 }
 
 const DEFAULT_BOT_ALLOCATION_PERCENT = 10;
+const TIMEFRAME_OPTIONS = ['1m', '5m', '15m', '30m', '1h', '2h', '4h', '1d'] as const;
+type Timeframe = (typeof TIMEFRAME_OPTIONS)[number];
 
 export default function BotControlPanel({ symbol }: BotControlPanelProps) {
   const normalizedPageSymbol = symbol.trim().toUpperCase();
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createSymbol, setCreateSymbol] = useState(normalizedPageSymbol);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1h');
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [bots, setBots] = useState<TradingBot[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -129,6 +132,7 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
         account_id: selectedAccountId,
         symbol,
         allocation_percent: DEFAULT_BOT_ALLOCATION_PERCENT,
+        trading_params: { timeframe: selectedTimeframe },
       });
       await updateBotStatus(authorization, newBot.id, 'running');
       setBots(await listBots(authorization));
@@ -268,6 +272,21 @@ export default function BotControlPanel({ symbol }: BotControlPanelProps) {
                   readOnly
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                  Timeframe
+                </label>
+                <select
+                  value={selectedTimeframe}
+                  onChange={(e) => setSelectedTimeframe(e.target.value as Timeframe)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                >
+                  {TIMEFRAME_OPTIONS.map((tf) => (
+                    <option key={tf} value={tf}>{tf}</option>
+                  ))}
+                </select>
               </div>
 
             </div>

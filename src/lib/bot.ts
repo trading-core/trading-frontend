@@ -18,6 +18,7 @@ export interface TradingBot {
 
 export interface TradingParameters {
   entry_mode?: string;
+  timeframe?: string;
   take_profit_pct?: number;
   stop_loss_pct?: number;
   session_start?: number;
