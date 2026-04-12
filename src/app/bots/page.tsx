@@ -89,25 +89,17 @@ export default function MyBotsPage() {
   const [createBotAccount, setCreateBotAccount] = useState<TradingAccount | null>(null);
   const [createBotSymbol, setCreateBotSymbol] = useState('AAPL');
   const [createBotAllocationPercent, setCreateBotAllocationPercent] = useState('10');
-  // Upfront scalping params
-  const [createBotEntryMode, setCreateBotEntryMode] = useState('pullback');
-  const [createBotTakeProfitPct, setCreateBotTakeProfitPct] = useState('');
-  const [createBotStopLossPct, setCreateBotStopLossPct] = useState('');
+  const [createBotTimeframe, setCreateBotTimeframe] = useState('1h');
+  const [createBotMaxPositionFraction, setCreateBotMaxPositionFraction] = useState('');
+  const [createBotATRMultiplier, setCreateBotATRMultiplier] = useState('');
   const [createBotSessionStart, setCreateBotSessionStart] = useState('');
   const [createBotSessionEnd, setCreateBotSessionEnd] = useState('');
-  const [showCreateBotAdvanced, setShowCreateBotAdvanced] = useState(false);
-  // Advanced scalping params
-  const [createBotMinRSI, setCreateBotMinRSI] = useState('');
-  const [createBotRequireMACDSignal, setCreateBotRequireMACDSignal] = useState(true);
-  const [createBotRequireBollingerBreakout, setCreateBotRequireBollingerBreakout] = useState(false);
-  const [createBotMinBollingerWidthPct, setCreateBotMinBollingerWidthPct] = useState('');
-  const [createBotRequireBollingerSqueeze, setCreateBotRequireBollingerSqueeze] = useState(false);
-  const [createBotMaxBollingerWidthPct, setCreateBotMaxBollingerWidthPct] = useState('');
   const [createBotReentryCooldown, setCreateBotReentryCooldown] = useState('');
-  const [createBotUseVolatilityTP, setCreateBotUseVolatilityTP] = useState(false);
-  const [createBotVolatilityTPMultiplier, setCreateBotVolatilityTPMultiplier] = useState('');
+  const [createBotOversoldRSI, setCreateBotOversoldRSI] = useState('');
+  const [createBotOverboughtRSI, setCreateBotOverboughtRSI] = useState('');
+  const [createBotLookbackBars, setCreateBotLookbackBars] = useState('');
   const [createBotRiskPerTradePct, setCreateBotRiskPerTradePct] = useState('');
-  const [createBotBreakoutLookbackBars, setCreateBotBreakoutLookbackBars] = useState('');
+  const [showCreateBotAdvanced, setShowCreateBotAdvanced] = useState(false);
 
   useEffect(() => {
     const refreshSession = () => {
@@ -242,23 +234,17 @@ export default function MyBotsPage() {
     setCreateBotAccount(account);
     setCreateBotSymbol('AAPL');
     setCreateBotAllocationPercent('10');
-    setCreateBotEntryMode('pullback');
-    setCreateBotTakeProfitPct('');
-    setCreateBotStopLossPct('');
+    setCreateBotTimeframe('1h');
+    setCreateBotMaxPositionFraction('');
+    setCreateBotATRMultiplier('');
     setCreateBotSessionStart('');
     setCreateBotSessionEnd('');
-    setShowCreateBotAdvanced(false);
-    setCreateBotMinRSI('');
-    setCreateBotRequireMACDSignal(true);
-    setCreateBotRequireBollingerBreakout(false);
-    setCreateBotMinBollingerWidthPct('');
-    setCreateBotRequireBollingerSqueeze(false);
-    setCreateBotMaxBollingerWidthPct('');
     setCreateBotReentryCooldown('');
-    setCreateBotUseVolatilityTP(false);
-    setCreateBotVolatilityTPMultiplier('');
+    setCreateBotOversoldRSI('');
+    setCreateBotOverboughtRSI('');
+    setCreateBotLookbackBars('');
     setCreateBotRiskPerTradePct('');
-    setCreateBotBreakoutLookbackBars('');
+    setShowCreateBotAdvanced(false);
   };
 
   const handleConfirmCreateBot = async () => {
@@ -276,10 +262,6 @@ export default function MyBotsPage() {
       return;
     }
 
-    const pctFraction = (s: string) => {
-      const v = Number.parseFloat(s);
-      return Number.isFinite(v) ? v / 100 : undefined;
-    };
     const intParam = (s: string) => {
       const v = Number.parseInt(s, 10);
       return Number.isFinite(v) ? v : undefined;
@@ -290,22 +272,16 @@ export default function MyBotsPage() {
     };
 
     const tradingParams: TradingParameters = {
-      entry_mode: createBotEntryMode || undefined,
-      take_profit_pct: pctFraction(createBotTakeProfitPct),
-      stop_loss_pct: pctFraction(createBotStopLossPct),
+      timeframe: createBotTimeframe || undefined,
+      max_position_fraction: floatParam(createBotMaxPositionFraction),
+      atr_multiplier: floatParam(createBotATRMultiplier),
       session_start: intParam(createBotSessionStart),
       session_end: intParam(createBotSessionEnd),
-      min_rsi: floatParam(createBotMinRSI),
-      require_macd_signal: createBotRequireMACDSignal,
-      require_bollinger_breakout: createBotRequireBollingerBreakout,
-      min_bollinger_width_pct: createBotRequireBollingerBreakout ? pctFraction(createBotMinBollingerWidthPct) : undefined,
-      require_bollinger_squeeze: createBotRequireBollingerSqueeze,
-      max_bollinger_width_pct: createBotRequireBollingerSqueeze ? pctFraction(createBotMaxBollingerWidthPct) : undefined,
       reentry_cooldown_minutes: intParam(createBotReentryCooldown),
-      use_volatility_tp: createBotUseVolatilityTP,
-      volatility_tp_multiplier: createBotUseVolatilityTP ? floatParam(createBotVolatilityTPMultiplier) : undefined,
-      risk_per_trade_pct: pctFraction(createBotRiskPerTradePct),
-      breakout_lookback_bars: createBotEntryMode === 'breakout' ? intParam(createBotBreakoutLookbackBars) : undefined,
+      oversold_rsi: floatParam(createBotOversoldRSI),
+      overbought_rsi: floatParam(createBotOverboughtRSI),
+      lookback_bars: intParam(createBotLookbackBars),
+      risk_per_trade_pct: floatParam(createBotRiskPerTradePct),
     };
 
     const account = createBotAccount;
@@ -912,53 +888,23 @@ export default function MyBotsPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                      Entry Mode
+                      Timeframe
                     </label>
                     <select
-                      value={createBotEntryMode}
-                      onChange={(event) => setCreateBotEntryMode(event.target.value)}
+                      value={createBotTimeframe}
+                      onChange={(event) => setCreateBotTimeframe(event.target.value)}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                     >
-                      <option value="pullback">Pullback — buy dip to Bollinger middle</option>
-                      <option value="breakout">Breakout — buy new session high</option>
+                      {['1m', '5m', '15m', '30m', '1h', '2h', '4h', '1d'].map((tf) => (
+                        <option key={tf} value={tf}>{tf}</option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        Take Profit %
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={createBotTakeProfitPct}
-                        onChange={(event) => setCreateBotTakeProfitPct(event.target.value)}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                        placeholder="0.5"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        Trailing Stop Loss %
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={createBotStopLossPct}
-                        onChange={(event) => setCreateBotStopLossPct(event.target.value)}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                        placeholder="2.0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        Session Start (ET hour)
+                        Session Start (hour 0–23)
                       </label>
                       <input
                         type="number"
@@ -973,7 +919,7 @@ export default function MyBotsPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        Session End (ET hour)
+                        Session End (hour 0–23)
                       </label>
                       <input
                         type="number"
@@ -988,25 +934,38 @@ export default function MyBotsPage() {
                     </div>
                   </div>
 
-                  {createBotEntryMode === 'breakout' && (
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                        Breakout Lookback Bars
+                        Oversold RSI
                       </label>
                       <input
                         type="number"
-                        min="1"
+                        min="0"
+                        max="100"
                         step="1"
-                        value={createBotBreakoutLookbackBars}
-                        onChange={(event) => setCreateBotBreakoutLookbackBars(event.target.value)}
+                        value={createBotOversoldRSI}
+                        onChange={(event) => setCreateBotOversoldRSI(event.target.value)}
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                        placeholder="1 (session high)"
+                        placeholder="30"
                       />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        1 = session high, 5 = 5-bar high, etc.
-                      </p>
                     </div>
-                  )}
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                        Overbought RSI
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={createBotOverboughtRSI}
+                        onChange={(event) => setCreateBotOverboughtRSI(event.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                        placeholder="70"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1026,18 +985,58 @@ export default function MyBotsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                          Min RSI (0–100)
+                          Max Position Fraction
                         </label>
                         <input
                           type="number"
                           min="0"
-                          max="100"
-                          step="1"
-                          value={createBotMinRSI}
-                          onChange={(event) => setCreateBotMinRSI(event.target.value)}
+                          max="1"
+                          step="0.01"
+                          value={createBotMaxPositionFraction}
+                          onChange={(event) => setCreateBotMaxPositionFraction(event.target.value)}
                           className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                          placeholder="40"
+                          placeholder="0.1"
                         />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Fraction of buying power per trade (e.g. 0.1 = 10%)
+                        </p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                          ATR Multiplier
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={createBotATRMultiplier}
+                          onChange={(event) => setCreateBotATRMultiplier(event.target.value)}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                          placeholder="2.0"
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          ATR multiple for trailing stop; 0 disables
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
+                          Lookback Bars
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={createBotLookbackBars}
+                          onChange={(event) => setCreateBotLookbackBars(event.target.value)}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                          placeholder="0"
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          N-bar high for breakout entry; 0 disables
+                        </p>
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
@@ -1066,101 +1065,11 @@ export default function MyBotsPage() {
                         value={createBotRiskPerTradePct}
                         onChange={(event) => setCreateBotRiskPerTradePct(event.target.value)}
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                        placeholder="0 (disabled, uses allocation)"
+                        placeholder="0 (disabled, uses max_position_fraction)"
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={createBotRequireMACDSignal}
-                          onChange={(event) => setCreateBotRequireMACDSignal(event.target.checked)}
-                          className="rounded"
-                        />
-                        Require MACD above signal line
-                      </label>
-
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={createBotRequireBollingerBreakout}
-                          onChange={(event) => setCreateBotRequireBollingerBreakout(event.target.checked)}
-                          className="rounded"
-                        />
-                        Require Bollinger breakout
-                      </label>
-                      {createBotRequireBollingerBreakout && (
-                        <div className="ml-6">
-                          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                            Min Bollinger Width %
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={createBotMinBollingerWidthPct}
-                            onChange={(event) => setCreateBotMinBollingerWidthPct(event.target.value)}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                            placeholder="0"
-                          />
-                        </div>
-                      )}
-
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={createBotRequireBollingerSqueeze}
-                          onChange={(event) => setCreateBotRequireBollingerSqueeze(event.target.checked)}
-                          className="rounded"
-                        />
-                        Require Bollinger squeeze
-                      </label>
-                      {createBotRequireBollingerSqueeze && (
-                        <div className="ml-6">
-                          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                            Max Bollinger Width %
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={createBotMaxBollingerWidthPct}
-                            onChange={(event) => setCreateBotMaxBollingerWidthPct(event.target.value)}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                            placeholder="2.0"
-                          />
-                        </div>
-                      )}
-
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={createBotUseVolatilityTP}
-                          onChange={(event) => setCreateBotUseVolatilityTP(event.target.checked)}
-                          className="rounded"
-                        />
-                        Use volatility-based take profit
-                      </label>
-                      {createBotUseVolatilityTP && (
-                        <div className="ml-6">
-                          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                            Volatility TP Multiplier
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={createBotVolatilityTPMultiplier}
-                            onChange={(event) => setCreateBotVolatilityTPMultiplier(event.target.value)}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                            placeholder="0.5"
-                          />
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Multiplied by Bollinger width to compute dynamic TP.
-                          </p>
-                        </div>
-                      )}
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Fraction of buying power to risk per trade for ATR-based sizing; 0 uses max position fraction
+                      </p>
                     </div>
                   </div>
                 )}

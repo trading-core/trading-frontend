@@ -17,23 +17,16 @@ export interface TradingBot {
 }
 
 export interface TradingParameters {
-  entry_mode?: string;
   timeframe?: string;
-  take_profit_pct?: number;
-  stop_loss_pct?: number;
+  max_position_fraction?: number;
+  atr_multiplier?: number;
   session_start?: number;
   session_end?: number;
-  min_rsi?: number;
-  require_macd_signal?: boolean;
-  require_bollinger_breakout?: boolean;
-  min_bollinger_width_pct?: number;
-  require_bollinger_squeeze?: boolean;
-  max_bollinger_width_pct?: number;
   reentry_cooldown_minutes?: number;
-  use_volatility_tp?: boolean;
-  volatility_tp_multiplier?: number;
+  oversold_rsi?: number;
+  overbought_rsi?: number;
+  lookback_bars?: number;
   risk_per_trade_pct?: number;
-  breakout_lookback_bars?: number;
 }
 
 export interface CreateBotInput {

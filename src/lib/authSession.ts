@@ -15,34 +15,39 @@ export const AUTH_SESSION_CHANGED_EVENT = 'trading.auth.session.changed';
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
 export const dispatchSessionChanged = () => {
-  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT));
+  }
 };
 
+const storage = (): Storage | null =>
+  typeof window !== 'undefined' ? window.localStorage : null;
+
 export const loadAuthSession = (): AuthSession | null => {
-  const raw = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+  const raw = storage()?.getItem(AUTH_SESSION_STORAGE_KEY);
   if (!raw) {
     return null;
   }
   try {
     const parsed = JSON.parse(raw) as AuthSession;
     if (new Date(parsed.expires_at).getTime() <= Date.now()) {
-      localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      storage()?.removeItem(AUTH_SESSION_STORAGE_KEY);
       return null;
     }
     return parsed;
   } catch {
-    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    storage()?.removeItem(AUTH_SESSION_STORAGE_KEY);
     return null;
   }
 };
 
 export const saveAuthSession = (session: AuthSession) => {
-  localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
+  storage()?.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
   dispatchSessionChanged();
 };
 
 export const clearAuthSession = () => {
-  localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+  storage()?.removeItem(AUTH_SESSION_STORAGE_KEY);
   dispatchSessionChanged();
 };
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import StockSearchHeader from './StockSearchHeader';
 import StockNews from './StockNews';
 import ActiveStocks from './ActiveStocks';
 import TradingViewStockHeatmapWidget from './TradingViewStockHeatmapWidget';
@@ -29,7 +28,6 @@ export default function TopStockMovers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,13 +68,6 @@ export default function TopStockMovers() {
     return () => clearInterval(interval);
   }, [limit]);
 
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchInput.trim()) {
-      router.push(`/stock/${searchInput.toUpperCase()}`);
-      setSearchInput('');
-    }
-  };
-
   const navigateToStock = (symbol: string) => {
     router.push(`/stock/${symbol}`);
   };
@@ -110,13 +101,6 @@ export default function TopStockMovers() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-7xl mx-auto">
-        <StockSearchHeader
-          searchInput={searchInput}
-          onSearchChange={(value) => setSearchInput(value)}
-          onSearch={handleSearch}
-          lastUpdated={data?.last_updated}
-        />
-
         <div className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-zinc-900">
           <div className="flex items-center gap-4">
             <label className="font-medium text-gray-700 dark:text-gray-300">Show top:</label>
