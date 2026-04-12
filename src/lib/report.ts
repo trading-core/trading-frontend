@@ -91,5 +91,31 @@ export const listReports = async (
   return response.json() as Promise<ListReportsResult>;
 };
 
-export const getReportDownloadUrl = (reportID: string): string =>
-  apiUrl(REPORT_SERVICE_BASE_URL, `/reports/v1/reports/${reportID}/download`);
+export const downloadReport = async (authorization: string, reportID: string): Promise<void> => {
+  const response = await request(`/reports/v1/reports/${reportID}/download`, {
+    method: 'GET',
+    headers: { Authorization: authorization },
+  });
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = `report-${reportID}.html`;
+  anchor.click();
+  URL.revokeObjectURL(objectUrl);
+};
+
+export const openReport = async (authorization: string, reportID: string): Promise<void> => {
+  const response = await request(`/reports/v1/reports/${reportID}/download`, {
+    method: 'GET',
+    headers: { Authorization: authorization },
+  });
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const tab = window.open(objectUrl, '_blank');
+  // Revoke after a short delay so the new tab has time to load the blob.
+  setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+    tab?.focus();
+  }, 10000);
+};

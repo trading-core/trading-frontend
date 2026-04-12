@@ -6,7 +6,8 @@ import {
   enqueueReport,
   listReports,
   getReport,
-  getReportDownloadUrl,
+  downloadReport,
+  openReport,
   type Report,
   type EnqueueReportInput,
   type ListReportsResult,
@@ -16,6 +17,7 @@ import BacktestReportForm, {
   BACKTEST_FORM_DEFAULTS,
   buildBacktestParameters,
   validateBacktestForm,
+  parseBacktestParameters,
 } from '@/components/BacktestReportForm';
 
 const POLL_INTERVAL_MS = 3000;
@@ -76,6 +78,23 @@ function IconX({ className }: { className?: string }) {
   );
 }
 
+function IconCopy({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function IconExternalLink({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    </svg>
+  );
+}
+
 function IconDownload({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -124,6 +143,13 @@ export default function ReportModal({
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [authorization, setAuthorization] = useState<string | null>(null);
+
+  // Disable body scroll while the modal is open.
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   // Track current page in a ref so the poll can reload the right page.
   const pageRef = useRef(page);
@@ -275,6 +301,7 @@ export default function ReportModal({
                     <th className="pb-2 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Report Type</th>
                     <th className="pb-2 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date Created</th>
                     <th className="pb-2 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="pb-2 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"></th>
                     <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"></th>
                   </tr>
                 </thead>
@@ -312,17 +339,43 @@ export default function ReportModal({
                             </span>
                           )}
                         </td>
+                        <td className="py-3 pr-4">
+                          {report.kind === 'backtest' && report.parameters ? (
+                            <button
+                              type="button"
+                              title="Reuse parameters"
+                              onClick={() => {
+                                setSelectedKind(report.kind);
+                                setBacktestFormValues(parseBacktestParameters(report.parameters!));
+                                setNewReportStep('form');
+                              }}
+                              className="inline-flex items-center text-gray-400 hover:opacity-70 dark:text-gray-500"
+                            >
+                              <IconCopy className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                        </td>
                         <td className="py-3">
                           {report.status === 'completed' ? (
-                            <a
-                              href={getReportDownloadUrl(report.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Download report"
-                              className="inline-flex items-center text-green-500 hover:opacity-70 dark:text-green-400"
-                            >
-                              <IconDownload className="h-4 w-4" />
-                            </a>
+                            report.kind === 'backtest' ? (
+                              <button
+                                type="button"
+                                title="Open report"
+                                onClick={() => { if (authorization) void openReport(authorization, report.id); }}
+                                className="inline-flex items-center text-green-500 hover:opacity-70 dark:text-green-400"
+                              >
+                                <IconExternalLink className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Download report"
+                                onClick={() => { if (authorization) void downloadReport(authorization, report.id); }}
+                                className="inline-flex items-center text-green-500 hover:opacity-70 dark:text-green-400"
+                              >
+                                <IconDownload className="h-4 w-4" />
+                              </button>
+                            )
                           ) : null}
                         </td>
                       </tr>

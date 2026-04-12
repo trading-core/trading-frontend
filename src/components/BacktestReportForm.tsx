@@ -87,6 +87,48 @@ export function buildBacktestParameters(values: BacktestFormValues): Record<stri
   return { json: JSON.stringify(payload) };
 }
 
+/** Parses a stored parameters map back into BacktestFormValues. */
+export function parseBacktestParameters(parameters: Record<string, string>): BacktestFormValues {
+  try {
+    const parsed = JSON.parse(parameters.json ?? '{}') as Record<string, unknown>;
+    const tp = (parsed.trading_params ?? {}) as Record<string, unknown>;
+
+    const splitDateTime = (iso: unknown): { date: string; time: string } => {
+      if (typeof iso !== 'string' || !iso) return { date: '', time: '' };
+      const [datePart, timePart] = iso.split('T');
+      const time = (timePart ?? '').replace(':00Z', '').replace('Z', '');
+      return { date: datePart ?? '', time: time || '00:00' };
+    };
+
+    const str = (v: unknown): string => (v != null ? String(v) : '');
+
+    const start = splitDateTime(parsed.start);
+    const end = splitDateTime(parsed.end);
+
+    return {
+      symbol: str(parsed.symbol),
+      startDate: start.date,
+      startTime: start.time,
+      endDate: end.date,
+      endTime: end.time,
+      source: str(parsed.source) || DEFAULT_VALUES.source,
+      cash: str(parsed.cash) || DEFAULT_VALUES.cash,
+      timeframe: str(tp.timeframe) || DEFAULT_VALUES.timeframe,
+      maxPositionFraction: str(tp.max_position_fraction) || DEFAULT_VALUES.maxPositionFraction,
+      atrMultiplier: str(tp.atr_multiplier) || DEFAULT_VALUES.atrMultiplier,
+      sessionStart: str(tp.session_start),
+      sessionEnd: str(tp.session_end),
+      reentryCooldownMinutes: str(tp.reentry_cooldown_minutes),
+      oversoldRSI: str(tp.oversold_rsi) || DEFAULT_VALUES.oversoldRSI,
+      overboughtRSI: str(tp.overbought_rsi) || DEFAULT_VALUES.overboughtRSI,
+      lookbackBars: str(tp.lookback_bars),
+      riskPerTradePct: str(tp.risk_per_trade_pct),
+    };
+  } catch {
+    return DEFAULT_VALUES;
+  }
+}
+
 /** Returns a validation error string, or null if valid. */
 export function validateBacktestForm(values: BacktestFormValues): string | null {
   if (!values.symbol.trim()) return 'Symbol is required.';
