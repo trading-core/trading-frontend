@@ -55,7 +55,7 @@ export const enqueueReport = async (
   authorization: string,
   input: EnqueueReportInput
 ): Promise<Report> => {
-  const response = await request('/reports/v1/reports', {
+  const response = await request('/reports/v1/jobs', {
     method: 'POST',
     headers: withAuth(authorization),
     body: JSON.stringify(input),
@@ -64,7 +64,7 @@ export const enqueueReport = async (
 };
 
 export const getReport = async (authorization: string, reportID: string): Promise<Report> => {
-  const response = await request(`/reports/v1/reports/${reportID}`, {
+  const response = await request(`/reports/v1/jobs/${reportID}`, {
     method: 'GET',
     headers: withAuth(authorization),
   });
@@ -85,14 +85,14 @@ export const listReports = async (
   pageSize: number
 ): Promise<ListReportsResult> => {
   const response = await request(
-    `/reports/v1/reports?page=${page}&page_size=${pageSize}`,
+    `/reports/v1/jobs?page=${page}&page_size=${pageSize}`,
     { method: 'GET', headers: withAuth(authorization) }
   );
   return response.json() as Promise<ListReportsResult>;
 };
 
 export const downloadReport = async (authorization: string, reportID: string): Promise<void> => {
-  const response = await request(`/reports/v1/reports/${reportID}/download`, {
+  const response = await request(`/reports/v1/jobs/${reportID}/download`, {
     method: 'GET',
     headers: { Authorization: authorization },
   });
@@ -106,7 +106,7 @@ export const downloadReport = async (authorization: string, reportID: string): P
 };
 
 export const openReport = async (authorization: string, reportID: string): Promise<void> => {
-  const response = await request(`/reports/v1/reports/${reportID}/download`, {
+  const response = await request(`/reports/v1/jobs/${reportID}/download`, {
     method: 'GET',
     headers: { Authorization: authorization },
   });
