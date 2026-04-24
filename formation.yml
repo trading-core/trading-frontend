@@ -6,6 +6,7 @@
       NEXT_PUBLIC_STOCK_SCREENER_BASE_URL: http://localhost:8080
       NEXT_PUBLIC_AUTH_SERVICE_BASE_URL: http://localhost:9100
       NEXT_PUBLIC_BOT_SERVICE_BASE_URL: http://localhost:8081
+      NEXT_PUBLIC_JOURNAL_SERVICE_BASE_URL: http://localhost:8084
   template:
     src: "{{ playbook_dir }}/templates/service.env.j2"
     dest: frontend/.env

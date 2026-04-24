@@ -22,3 +22,15 @@ export interface BalanceInfo {
   equity_buying_power: number;
   currency: string;
 }
+
+export interface DailyPnL {
+  date: string;
+  realized_pnl: number;
+  trade_count: number;
+  fees: number;
+}
+
+export interface DailyPnLResult {
+  currency: string;
+  days: DailyPnL[];
+}
