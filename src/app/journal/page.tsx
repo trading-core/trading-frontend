@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import JournalCalendar from '@/components/JournalCalendar';
 import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
 import { type TradingAccount } from '@/lib/account';
@@ -10,10 +10,12 @@ import {
   type AuthSession,
 } from '@/lib/authSession';
 
+const ALL_ACCOUNTS = '__all__';
+
 export default function JournalPage() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
-  const [selectedAccountID, setSelectedAccountID] = useState<string | null>(null);
+  const [selection, setSelection] = useState<string>(ALL_ACCOUNTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,16 +41,12 @@ export default function JournalPage() {
       }
       const list = (await response.json()) as TradingAccount[];
       setAccounts(list);
-      if (list.length > 0 && !selectedAccountID) {
-        const brokerLinked = list.find((account) => account.broker_linked);
-        setSelectedAccountID((brokerLinked ?? list[0]).account_id);
-      }
     } catch (loadErr) {
       setError((loadErr as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [session, selectedAccountID]);
+  }, [session]);
 
   useEffect(() => {
     loadAccounts();
@@ -58,22 +56,38 @@ export default function JournalPage() {
     ? `${session.token_type} ${session.access_token}`
     : null;
 
-  const selectedAccount = accounts.find((account) => account.account_id === selectedAccountID);
+  const linkedAccounts = useMemo(
+    () => accounts.filter((account) => account.broker_linked),
+    [accounts]
+  );
+
+  const pnlAccountIDs = useMemo(() => {
+    if (linkedAccounts.length === 0) return [];
+    if (selection === ALL_ACCOUNTS) {
+      return linkedAccounts.map((account) => account.account_id);
+    }
+    return linkedAccounts.some((account) => account.account_id === selection)
+      ? [selection]
+      : [];
+  }, [linkedAccounts, selection]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-white">Trading Journal</h1>
-          {accounts.length > 1 && (
+          {linkedAccounts.length > 0 && (
             <select
-              value={selectedAccountID ?? ''}
-              onChange={(event) => setSelectedAccountID(event.target.value)}
+              value={selection}
+              onChange={(event) => setSelection(event.target.value)}
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
             >
-              {accounts.map((account) => (
+              {linkedAccounts.length > 1 && (
+                <option value={ALL_ACCOUNTS}>All accounts ({linkedAccounts.length})</option>
+              )}
+              {linkedAccounts.map((account) => (
                 <option key={account.account_id} value={account.account_id}>
-                  {account.name} {account.broker_linked ? '' : '(no broker)'}
+                  {account.name}
                 </option>
               ))}
             </select>
@@ -99,8 +113,7 @@ export default function JournalPage() {
           <div className="bg-gray-900/50 rounded-lg p-6 border border-gray-800">
             <JournalCalendar
               authorization={authorization}
-              accountID={selectedAccountID}
-              brokerLinked={selectedAccount?.broker_linked ?? false}
+              pnlAccountIDs={pnlAccountIDs}
             />
           </div>
         )}

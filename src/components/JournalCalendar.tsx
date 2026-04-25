@@ -8,9 +8,11 @@ import JournalEntryDrawer from './JournalEntryDrawer';
 
 interface JournalCalendarProps {
   authorization: string;
-  accountID: string | null;
-  brokerLinked: boolean;
+  pnlAccountIDs: string[];
 }
+
+const netPnL = (day: { realized_pnl: number; fees: number }) =>
+  day.realized_pnl - day.fees;
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -52,9 +54,9 @@ const pnlCellClass = (pnl: number) => {
 
 export default function JournalCalendar({
   authorization,
-  accountID,
-  brokerLinked,
+  pnlAccountIDs,
 }: JournalCalendarProps) {
+  const hasPnLSource = pnlAccountIDs.length > 0;
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => ({
     year: today.getFullYear(),
@@ -74,14 +76,40 @@ export default function JournalCalendar({
     setError(null);
     try {
       const journalPromise = listJournalEntries(authorization, monthStart, monthEnd);
-      const pnlPromise =
-        accountID && brokerLinked
-          ? getDailyPnL(authorization, accountID, monthStart, monthEnd).catch((pnlErr: Error) => {
-              // PnL is best-effort; surface as a soft error but still show journal.
-              setError(`PnL unavailable: ${pnlErr.message}`);
-              return null;
-            })
-          : Promise.resolve(null);
+      const pnlPromise: Promise<DailyPnLResult | null> = hasPnLSource
+        ? Promise.all(
+            pnlAccountIDs.map((id) =>
+              getDailyPnL(authorization, id, monthStart, monthEnd).catch((pnlErr: Error) => {
+                setError(`PnL unavailable for an account: ${pnlErr.message}`);
+                return null;
+              })
+            )
+          ).then((results) => {
+            const successful = results.filter(
+              (result): result is DailyPnLResult => result !== null
+            );
+            if (successful.length === 0) return null;
+            const merged = new Map<string, DailyPnL>();
+            for (const result of successful) {
+              for (const day of result.days) {
+                const existing = merged.get(day.date);
+                if (existing) {
+                  existing.realized_pnl += day.realized_pnl;
+                  existing.fees += day.fees;
+                  existing.trade_count += day.trade_count;
+                } else {
+                  merged.set(day.date, { ...day });
+                }
+              }
+            }
+            const days = Array.from(merged.values()).sort((a, b) =>
+              a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+            );
+            const currency =
+              successful.find((result) => result.currency)?.currency ?? 'USD';
+            return { currency, days };
+          })
+        : Promise.resolve(null);
       const [journalResult, pnl] = await Promise.all([journalPromise, pnlPromise]);
       setEntries(journalResult.entries);
       setPnlResult(pnl);
@@ -90,7 +118,7 @@ export default function JournalCalendar({
     } finally {
       setLoading(false);
     }
-  }, [authorization, accountID, brokerLinked, monthStart, monthEnd]);
+  }, [authorization, hasPnLSource, pnlAccountIDs, monthStart, monthEnd]);
 
   useEffect(() => {
     reload();
@@ -105,7 +133,7 @@ export default function JournalCalendar({
   const entryDates = useMemo(() => new Set(entries.map((entry) => entry.date)), [entries]);
 
   const monthTotal = useMemo(
-    () => (pnlResult?.days ?? []).reduce((sum, day) => sum + day.realized_pnl, 0),
+    () => (pnlResult?.days ?? []).reduce((sum, day) => sum + netPnL(day), 0),
     [pnlResult]
   );
 
@@ -189,7 +217,7 @@ export default function JournalCalendar({
 
       {loading && <p className="text-sm text-gray-400 mb-2">Loading…</p>}
       {error && <p className="text-sm text-amber-400 mb-2">{error}</p>}
-      {!brokerLinked && (
+      {!hasPnLSource && (
         <p className="text-sm text-gray-500 mb-4">
           Link a broker to see realized PnL per day. Journal notes still work without one.
         </p>
@@ -208,6 +236,7 @@ export default function JournalCalendar({
             return <div key={`blank-${index}`} className="aspect-square" />;
           }
           const pnl = pnlByDate.get(cell.date);
+          const net = pnl ? netPnL(pnl) : 0;
           const hasEntry = entryDates.has(cell.date);
           const isToday =
             cell.date === formatDate(today.getFullYear(), today.getMonth(), today.getDate());
@@ -217,7 +246,7 @@ export default function JournalCalendar({
               key={cell.date}
               onClick={() => setSelectedDate(cell.date)}
               className={`aspect-square rounded-lg border p-2 text-left transition hover:ring-2 hover:ring-blue-500/50 ${
-                pnl ? pnlCellClass(pnl.realized_pnl) : 'border-gray-800 bg-gray-900'
+                pnl ? pnlCellClass(net) : 'border-gray-800 bg-gray-900'
               } ${isToday ? 'ring-1 ring-blue-500/60' : ''}`}
             >
               <div className="flex items-start justify-between">
@@ -227,14 +256,14 @@ export default function JournalCalendar({
               {pnl && (
                 <div
                   className={`mt-1 text-sm font-semibold ${
-                    pnl.realized_pnl > 0
+                    net > 0
                       ? 'text-green-300'
-                      : pnl.realized_pnl < 0
+                      : net < 0
                         ? 'text-red-300'
                         : 'text-gray-300'
                   }`}
                 >
-                  {formatCurrency(pnl.realized_pnl, currency)}
+                  {formatCurrency(net, currency)}
                 </div>
               )}
               {pnl && (

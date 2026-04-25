@@ -114,8 +114,10 @@ export default function JournalEntryDrawer({
     }
   };
 
-  const pnlValue = pnl?.realized_pnl ?? 0;
-  const pnlColor = pnlValue > 0 ? 'text-green-400' : pnlValue < 0 ? 'text-red-400' : 'text-gray-400';
+  const realized = pnl?.realized_pnl ?? 0;
+  const fees = pnl?.fees ?? 0;
+  const net = realized - fees;
+  const pnlColor = net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-400';
 
   return (
     <div className="fixed inset-0 z-40 flex">
@@ -139,12 +141,13 @@ export default function JournalEntryDrawer({
 
         {pnl && (
           <div className="mb-6 rounded-lg border border-gray-800 bg-gray-800/50 p-4">
-            <div className="text-xs uppercase tracking-wide text-gray-500">Realized PnL</div>
+            <div className="text-xs uppercase tracking-wide text-gray-500">Net PnL</div>
             <div className={`text-2xl font-semibold ${pnlColor}`}>
-              {formatCurrency(pnl.realized_pnl, currency)}
+              {formatCurrency(net, currency)}
             </div>
             <div className="mt-1 text-xs text-gray-400">
-              {pnl.trade_count} trade{pnl.trade_count === 1 ? '' : 's'} · fees {formatCurrency(pnl.fees, currency)}
+              {pnl.trade_count} trade{pnl.trade_count === 1 ? '' : 's'} · realized{' '}
+              {formatCurrency(realized, currency)} · fees {formatCurrency(fees, currency)}
             </div>
           </div>
         )}

@@ -5,6 +5,7 @@ import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
 import { type CreateAccountResponse, type TradingAccount } from '@/lib/account';
 import { type AuthSession } from '@/lib/authSession';
 import Balance from '@/components/Balance';
+import { useDeveloperMode } from '@/lib/developerMode';
 
 interface AccountDashboardProps {
   session: AuthSession;
@@ -110,6 +111,7 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
   const [linkingBroker, setLinkingBroker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [devMode] = useDeveloperMode();
 
   const clearPendingSelection = useCallback(() => {
     setPendingToken(null);
@@ -371,174 +373,207 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-6 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white">Your Accounts</h2>
-            <p className="text-sm text-gray-400">User ID: {session.user_id}</p>
+            <h2 className="text-lg font-semibold text-white">Your accounts</h2>
+            {devMode && (
+              <p className="mt-1 text-xs text-gray-500">User ID: {session.user_id}</p>
+            )}
           </div>
           <button
             type="button"
             onClick={() => void fetchAccounts()}
-            className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white transition"
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
           >
             Refresh
           </button>
         </div>
 
-        <form onSubmit={handleCreateAccount} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form onSubmit={handleCreateAccount} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="block text-sm text-gray-300 mb-1">New account name</label>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-gray-400">
+              New account name
+            </label>
             <input
               type="text"
               required
               value={newAccountName}
               onChange={(event) => setNewAccountName(event.target.value)}
-              className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               placeholder="Primary"
             />
           </div>
           <button
             type="submit"
             disabled={creatingAccount || newAccountName.trim().length === 0}
-            className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white transition"
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {creatingAccount ? 'Creating...' : 'Create account'}
+            {creatingAccount ? 'Creating…' : 'Create account'}
           </button>
         </form>
 
-        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
-        {success && <p className="mt-4 text-sm text-green-300">{success}</p>}
-      </div>
-
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h3 className="text-xl font-semibold text-white mb-4">Account List</h3>
-        {loadingAccounts ? (
-          <p className="text-gray-400">Loading accounts...</p>
-        ) : accounts.length === 0 ? (
-          <p className="text-gray-400">No accounts yet. Create one to continue.</p>
-        ) : (
-          <div className="space-y-3">
-            {accounts.map((account) => {
-              const isSelected = account.account_id === selectedAccountID;
-              return (
-                <button
-                  key={account.account_id}
-                  type="button"
-                  onClick={() => setSelectedAccountID(account.account_id)}
-                  className={`w-full rounded-lg border p-4 text-left transition ${
-                    isSelected
-                      ? 'border-blue-500 bg-blue-950/40'
-                      : 'border-gray-700 bg-gray-900 hover:border-gray-500'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-white">{account.name}</p>
-                      <p className="text-xs text-gray-400">{account.account_id}</p>
-                    </div>
-                    <span
-                      className={`text-xs uppercase tracking-wide ${
-                        account.broker_linked ? 'text-green-300' : 'text-amber-300'
-                      }`}
-                    >
-                      {account.broker_linked ? 'Broker linked' : 'Needs broker'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+        {(error || success) && (
+          <div
+            className={`mt-4 rounded-lg border px-3 py-2 text-sm ${
+              error
+                ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+            }`}
+          >
+            {error || success}
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-6 shadow-xl">
+        <h3 className="text-base font-semibold text-white">Linked accounts</h3>
+        <div className="mt-4">
+          {loadingAccounts ? (
+            <div className="space-y-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-white/5" />
+              ))}
+            </div>
+          ) : accounts.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-white/10 px-4 py-8 text-center text-sm text-gray-400">
+              No accounts yet. Create one above to continue.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {accounts.map((account) => {
+                const isSelected = account.account_id === selectedAccountID;
+                return (
+                  <button
+                    key={account.account_id}
+                    type="button"
+                    onClick={() => setSelectedAccountID(account.account_id)}
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      isSelected
+                        ? 'border-blue-500/60 bg-blue-500/10'
+                        : 'border-white/5 bg-black/30 hover:border-white/20 hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="font-medium text-white">{account.name}</p>
+                        {devMode && (
+                          <p className="mt-0.5 text-xs text-gray-500">{account.account_id}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                          account.broker_linked
+                            ? 'bg-emerald-500/10 text-emerald-300'
+                            : 'bg-amber-500/10 text-amber-300'
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            account.broker_linked ? 'bg-emerald-400' : 'bg-amber-400'
+                          }`}
+                        />
+                        {account.broker_linked ? 'Broker linked' : 'Needs broker'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {selectedAccount && (
         <div className="space-y-6">
           {pendingToken && (
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-2">Choose {formatBrokerLabel(pendingBroker)} Account</h3>
-              <p className="text-sm text-gray-400 mb-4">
+            <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-6 shadow-xl">
+              <h3 className="text-base font-semibold text-white">
+                Choose {formatBrokerLabel(pendingBroker)} account
+              </h3>
+              <p className="mt-1 text-sm text-gray-400">
                 Your {formatBrokerLabel(pendingBroker)} login has multiple accounts. Choose which broker account to link to{' '}
                 {pendingLinkAccount?.name ?? 'the selected trading account'}.
               </p>
-              {pendingLinkAccount && (
-                <p className="text-xs text-gray-500 mb-4">
+              {devMode && pendingLinkAccount && (
+                <p className="mt-2 text-xs text-gray-500">
                   Linking trading account {pendingLinkAccount.name} ({pendingLinkAccount.account_id})
                 </p>
               )}
-              {loadingPendingBrokerAccounts ? (
-                <p className="text-gray-400">Loading available broker accounts...</p>
-              ) : pendingBrokerAccounts.length === 0 ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-amber-300">
-                    No broker accounts were returned for this authorization. Try reconnecting the broker.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearPendingSelection();
-                    }}
-                    disabled={linkingBroker}
-                    className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-4 max-w-sm">
-                    <label className="block text-sm text-gray-300 mb-1">Broker account</label>
-                    <select
-                      value={selectedPendingBrokerAccountID}
-                      onChange={(event) => setSelectedPendingBrokerAccountID(event.target.value)}
-                      disabled={linkingBroker || pendingBrokerAccounts.length === 0}
-                      className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
-                    >
-                      {pendingBrokerAccounts.map((brokerAccountID) => (
-                        <option key={brokerAccountID} value={brokerAccountID}>
-                          {brokerAccountID}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-3">
+              <div className="mt-4">
+                {loadingPendingBrokerAccounts ? (
+                  <p className="text-sm text-gray-400">Loading available broker accounts…</p>
+                ) : pendingBrokerAccounts.length === 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-amber-300">
+                      No broker accounts were returned for this authorization. Try reconnecting the broker.
+                    </p>
                     <button
                       type="button"
-                      onClick={() => void handleConfirmBrokerSelection()}
-                      disabled={linkingBroker || selectedPendingBrokerAccountID.length === 0}
-                      className="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium transition"
-                    >
-                      {linkingBroker ? 'Linking...' : 'Link selected account'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearPendingSelection();
-                      }}
+                      onClick={() => clearPendingSelection()}
                       disabled={linkingBroker}
-                      className="px-5 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-60 text-white font-medium transition"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-60"
                     >
-                      Cancel
+                      Dismiss
                     </button>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="mb-4 max-w-sm">
+                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-gray-400">
+                        Broker account
+                      </label>
+                      <select
+                        value={selectedPendingBrokerAccountID}
+                        onChange={(event) => setSelectedPendingBrokerAccountID(event.target.value)}
+                        disabled={linkingBroker || pendingBrokerAccounts.length === 0}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        {pendingBrokerAccounts.map((brokerAccountID) => (
+                          <option key={brokerAccountID} value={brokerAccountID}>
+                            {brokerAccountID}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleConfirmBrokerSelection()}
+                        disabled={linkingBroker || selectedPendingBrokerAccountID.length === 0}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {linkingBroker ? 'Linking…' : 'Link selected account'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => clearPendingSelection()}
+                        disabled={linkingBroker}
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           )}
           {!selectedAccount.broker_linked ? (
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-2">Connect Broker</h3>
-              <p className="text-sm text-gray-400 mb-4">
-                Choose a broker and authorize to securely link it to{' '}
-                {selectedAccount.name}.
+            <div className="rounded-2xl border border-white/5 bg-zinc-950/60 p-6 shadow-xl">
+              <h3 className="text-base font-semibold text-white">Connect a broker</h3>
+              <p className="mt-1 text-sm text-gray-400">
+                Choose a broker and authorize to securely link it to {selectedAccount.name}.
               </p>
-              <div className="mb-4 max-w-sm">
-                <label className="block text-sm text-gray-300 mb-1">Broker</label>
+              <div className="mt-4 mb-4 max-w-sm">
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-gray-400">
+                  Broker
+                </label>
                 <select
                   value={selectedBroker}
                   onChange={(event) => setSelectedBroker(event.target.value as SupportedBroker)}
                   disabled={linkingBroker}
-                  className="w-full px-3 py-2 rounded border border-gray-600 bg-gray-900 text-white"
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   {SUPPORTED_BROKERS.map((brokerOption) => (
                     <option key={brokerOption.value} value={brokerOption.value}>
@@ -551,9 +586,9 @@ export default function AccountDashboard({ session }: AccountDashboardProps) {
                 type="button"
                 onClick={() => void handleConnectBroker()}
                 disabled={linkingBroker || pendingToken !== null}
-                className="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium transition"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {linkingBroker ? 'Redirecting...' : 'Connect broker'}
+                {linkingBroker ? 'Redirecting…' : 'Connect broker'}
               </button>
             </div>
           ) : (

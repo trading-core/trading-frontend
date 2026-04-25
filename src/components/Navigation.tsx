@@ -134,7 +134,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-3">
           {/* Brand */}
           <Link href="/" className="shrink-0 text-xl font-bold text-white mr-1">
-            Trading Bot
+            Trading Core
           </Link>
 
           {/* Nav icons */}
