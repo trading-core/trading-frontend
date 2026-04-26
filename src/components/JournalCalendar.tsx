@@ -107,7 +107,34 @@ export default function JournalCalendar({
             );
             const currency =
               successful.find((result) => result.currency)?.currency ?? 'USD';
-            return { currency, days };
+            const summary = successful.reduce(
+              (accumulator, result) => ({
+                total_trades: accumulator.total_trades + result.summary.total_trades,
+                winning_trades: accumulator.winning_trades + result.summary.winning_trades,
+                losing_trades: accumulator.losing_trades + result.summary.losing_trades,
+                net_pnl: accumulator.net_pnl + result.summary.net_pnl,
+                net_pnl_after_fees:
+                  accumulator.net_pnl_after_fees + result.summary.net_pnl_after_fees,
+                fees: accumulator.fees + result.summary.fees,
+                gross_wins: accumulator.gross_wins + result.summary.gross_wins,
+                gross_losses: accumulator.gross_losses + result.summary.gross_losses,
+                win_rate: 0,
+              }),
+              {
+                total_trades: 0,
+                winning_trades: 0,
+                losing_trades: 0,
+                net_pnl: 0,
+                net_pnl_after_fees: 0,
+                fees: 0,
+                gross_wins: 0,
+                gross_losses: 0,
+                win_rate: 0,
+              },
+            );
+            const decided = summary.winning_trades + summary.losing_trades;
+            summary.win_rate = decided > 0 ? summary.winning_trades / decided : 0;
+            return { currency, days, summary };
           })
         : Promise.resolve(null);
       const [journalResult, pnl] = await Promise.all([journalPromise, pnlPromise]);

@@ -368,7 +368,7 @@ export default function MyBotsPage() {
           <p className="mb-3 text-sm uppercase tracking-[0.28em] text-gray-500 dark:text-gray-500">
             Accounts And Bots Overview
           </p>
-          <h1 className="mb-6 text-5xl font-bold text-black dark:text-white">My Bots</h1>
+          <h1 className="mb-6 text-5xl font-bold text-black dark:text-white">Bot Manager</h1>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {[

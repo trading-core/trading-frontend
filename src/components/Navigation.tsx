@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadAuthSession, AUTH_SESSION_CHANGED_EVENT } from "@/lib/authSession";
 import ReportModal, { type ReportKindOption } from "@/components/ReportModal";
+import AccountMenu from "@/components/AccountMenu";
 
 const REPORT_KINDS: ReportKindOption[] = [
   { value: 'backtest', label: 'Backtest', description: 'Run a strategy backtest and generate an HTML report' },
@@ -53,15 +54,6 @@ function IconLogin() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
       <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 0 0 6 5.25v13.5a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5V15a.75.75 0 0 1 1.5 0v3.75a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V5.25a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3V9A.75.75 0 0 1 15 9V5.25a1.5 1.5 0 0 0-1.5-1.5h-6Zm10.72 4.72a.75.75 0 0 1 1.06 0l3 3a.75.75 0 0 1 0 1.06l-3 3a.75.75 0 1 1-1.06-1.06l1.72-1.72H9a.75.75 0 0 1 0-1.5h10.94l-1.72-1.72a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-    </svg>
-  );
-}
-
-// Account — anonymous person icon (already used, keep consistent)
-function IconAccount() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
     </svg>
   );
 }
@@ -145,7 +137,7 @@ export default function Navigation() {
               </NavIcon>
               {isLoggedIn && (
                 <>
-                  <NavIcon label="My Bots" href="/bots">
+                  <NavIcon label="Bot Manager" href="/bots">
                     <IconBots />
                   </NavIcon>
                   <NavIcon label="Journal" href="/journal">
@@ -175,9 +167,7 @@ export default function Navigation() {
           {/* Account — always rightmost */}
           {!isLoading && (
             isLoggedIn ? (
-              <NavIcon label="Account" href="/account">
-                <IconAccount />
-              </NavIcon>
+              <AccountMenu />
             ) : (
               <NavIcon label="Login" href="/login">
                 <IconLogin />

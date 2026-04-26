@@ -30,7 +30,20 @@ export interface DailyPnL {
   fees: number;
 }
 
+export interface PnLSummary {
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  net_pnl: number;
+  net_pnl_after_fees: number;
+  fees: number;
+  gross_wins: number;
+  gross_losses: number;
+  win_rate: number;
+}
+
 export interface DailyPnLResult {
   currency: string;
   days: DailyPnL[];
+  summary: PnLSummary;
 }

@@ -75,7 +75,7 @@ export default function JournalPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-white">Trading Journal</h1>
+          <h1 className="text-3xl font-bold text-white">Journal</h1>
           {linkedAccounts.length > 0 && (
             <select
               value={selection}

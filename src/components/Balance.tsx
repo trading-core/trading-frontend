@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ACCOUNT_SERVICE_BASE_URL, apiUrl } from '@/lib/api';
 import { type TradingAccount, type BalanceInfo } from '@/lib/account';
 import { type AuthSession } from '@/lib/authSession';
+import { formatCurrency, useCurrencyFormat } from '@/lib/currencyFormat';
 
 interface BalanceProps {
   account: TradingAccount;
@@ -25,6 +26,7 @@ export default function Balance({ account, session }: BalanceProps) {
   const [data, setData] = useState<BalanceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currencyFormat] = useCurrencyFormat();
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -91,19 +93,19 @@ export default function Balance({ account, session }: BalanceProps) {
         <div className="flex justify-between items-baseline">
           <span className="text-gray-400 text-sm">Net Liq</span>
           <span className="text-green-400 text-xl font-bold">
-            {data.net_liquidating_value.toFixed(2)} {data.currency}
+            {formatCurrency(data.net_liquidating_value, data.currency, currencyFormat)}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="text-gray-400 text-sm">Cash</span>
           <span className="text-white text-base font-medium">
-            {data.cash_balance.toFixed(2)} {data.currency}
+            {formatCurrency(data.cash_balance, data.currency, currencyFormat)}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="text-gray-400 text-sm">Equity BP</span>
           <span className="text-white text-base font-medium">
-            {data.equity_buying_power.toFixed(2)} {data.currency}
+            {formatCurrency(data.equity_buying_power, data.currency, currencyFormat)}
           </span>
         </div>
       </div>
