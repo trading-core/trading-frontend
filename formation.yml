@@ -2,6 +2,7 @@
 - name: Render frontend .env
   include_tasks: "{{ playbook_dir }}/tasks/render-env.yml"
   vars:
+    mode: local
     env_dest: frontend/.env
     resources:
       public_clients: [account_service, stock_screener, auth_service, bot_service, journal_service]
