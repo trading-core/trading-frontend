@@ -5,4 +5,4 @@
     mode: local
     env_dest: frontend/.env
     resources:
-      public_clients: [account_service, stock_screener, auth_service, bot_service, journal_service]
+      public_clients: [account_service, stock_screener, authentication_service, bot_service, journal_service]
