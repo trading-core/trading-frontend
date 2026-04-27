@@ -1,13 +1,7 @@
 ---
 - name: Render frontend .env
+  include_tasks: "{{ playbook_dir }}/tasks/render-env.yml"
   vars:
-    service_environment:
-      NEXT_PUBLIC_ACCOUNT_SERVICE_BASE_URL: http://localhost:9000
-      NEXT_PUBLIC_STOCK_SCREENER_BASE_URL: http://localhost:8080
-      NEXT_PUBLIC_AUTH_SERVICE_BASE_URL: http://localhost:9100
-      NEXT_PUBLIC_BOT_SERVICE_BASE_URL: http://localhost:8081
-      NEXT_PUBLIC_JOURNAL_SERVICE_BASE_URL: http://localhost:8084
-  template:
-    src: "{{ playbook_dir }}/templates/service.env.j2"
-    dest: frontend/.env
-    mode: '0600'
+    env_dest: frontend/.env
+    resources:
+      public_clients: [account_service, stock_screener, auth_service, bot_service, journal_service]
