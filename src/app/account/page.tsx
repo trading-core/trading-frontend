@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AccountList from '@/components/AccountList';
 import AuthPanel from '@/components/AuthPanel';
@@ -10,6 +10,7 @@ export default function Account() {
   const router = useRouter();
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const oauthHandled = useRef(false);
 
   useEffect(() => {
     const refreshSession = () => {
@@ -24,11 +25,15 @@ export default function Account() {
   // OAuth callback lands on /account; forward to the relevant account detail
   // so the broker linking flow continues there.
   useEffect(() => {
+    if (oauthHandled.current) return;
     if (!session) return;
     const params = new URLSearchParams(window.location.search);
     const accountID = params.get('oauth_account_id');
     if (!accountID) return;
-    router.replace(`/account/${accountID}?${params.toString()}`);
+    oauthHandled.current = true;
+    params.delete('oauth_account_id');
+    const query = params.toString();
+    router.replace(`/account/${accountID}${query ? `?${query}` : ''}`);
   }, [router, session]);
 
   return (
