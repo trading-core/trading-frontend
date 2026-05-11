@@ -158,28 +158,27 @@ export default function AccountDetail({ session, accountID }: AccountDetailProps
     const oauthSuccess = params.get('oauth_success');
     const oauthError = params.get('oauth_error');
     const oauthPending = params.get('oauth_pending');
-    const oauthAccountID = params.get('oauth_account_id');
     if (oauthSuccess) {
       setSuccess('Broker account linked successfully.');
       clearPendingSelection();
-      window.history.replaceState({}, '', window.location.pathname);
+      router.replace(window.location.pathname);
       void fetchAccount();
       return;
     }
-    if (oauthPending && oauthAccountID === accountID) {
+    if (oauthPending) {
       setPendingToken(oauthPending);
       writeStoredPendingBrokerSelection({
         userID: session.user_id,
         pendingToken: oauthPending,
         pendingAccountID: accountID,
       });
-      window.history.replaceState({}, '', window.location.pathname);
+      router.replace(window.location.pathname);
       return;
     }
     if (oauthError) {
       setError(`Failed to connect broker: ${oauthError.replace(/_/g, ' ')}.`);
       clearPendingSelection();
-      window.history.replaceState({}, '', window.location.pathname);
+      router.replace(window.location.pathname);
       return;
     }
     const stored = readStoredPendingBrokerSelection();
