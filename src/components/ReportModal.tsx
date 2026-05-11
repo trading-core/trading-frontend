@@ -23,7 +23,7 @@ import BacktestReportForm, {
 const POLL_INTERVAL_MS = 3000;
 const PAGE_SIZE = 10;
 const EMPTY_LIST: ListReportsResult = {
-  reports: [],
+  jobs: [],
   page: 0,
   page_size: PAGE_SIZE,
   total_count: 0,
@@ -306,7 +306,7 @@ export default function ReportModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {listResult.reports.map((report) => {
+                  {listResult.jobs.map((report) => {
                     const Icon = STATUS_ICON[report.status];
                     const kindLabel = reportKinds.find((k) => k.value === report.kind)?.label ?? report.kind;
                     return (

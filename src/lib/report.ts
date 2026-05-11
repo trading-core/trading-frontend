@@ -72,7 +72,7 @@ export const getReport = async (authorization: string, reportID: string): Promis
 };
 
 export interface ListReportsResult {
-  reports: Report[];
+  jobs: Report[];
   page: number;
   page_size: number;
   total_count: number;
