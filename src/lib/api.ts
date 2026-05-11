@@ -18,7 +18,7 @@ const botBase =
   'http://localhost:8081';
 
 const reportBase =
-  process.env.NEXT_PUBLIC_REPORT_SERVICE_BASE_URL ??
+  process.env.NEXT_PUBLIC_REPORTING_SERVICE_BASE_URL ??
   'http://localhost:8082';
 
 const journalBase =
